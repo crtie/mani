@@ -7,12 +7,11 @@ import os.path as osp
 import shutil
 import time
 from copy import deepcopy
-#from tensorboard import tensorboard
+from tensorboard import tensorboard
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["MKL_NUM_THREADS"] = "1"
-os.environ["NUMEXPR_NUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "32"
 os.environ["OMP_NUM_THREADS"] = "1"
-
 
 def init_torch(args):
     import torch

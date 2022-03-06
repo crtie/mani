@@ -1,0 +1,399 @@
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:34:23 - Environment info:
+------------------------------------------------------------
+sys.platform: linux
+Python: 3.8.10 (default, Jun  4 2021, 15:09:15) [GCC 7.5.0]
+CUDA available: True
+GPU 0,1,2,3,4,5,6,7: GeForce RTX 2080 Ti
+CUDA_HOME: /home/chenruitie/anaconda3/envs/mani_skill
+NVCC: 
+Num of GPUs: 8
+GCC: gcc (Ubuntu 9.3.0-17ubuntu1~20.04) 9.3.0
+PyTorch: 1.10.2+cu102
+PyTorch compiling details: PyTorch built with:
+  - GCC 7.3
+  - C++ Version: 201402
+  - Intel(R) oneAPI Math Kernel Library Version 2021.3-Product Build 20210617 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v2.2.3 (Git Hash 7336ca9f055cf1bfa13efb658fe15dc9b41f0740)
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - LAPACK is enabled (usually provided by MKL)
+  - NNPACK is enabled
+  - CPU capability usage: AVX512
+  - CUDA Runtime 10.2
+  - NVCC architecture flags: -gencode;arch=compute_37,code=sm_37;-gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_70,code=sm_70
+  - CuDNN 7.6.5
+  - Magma 2.5.2
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, CUDA_VERSION=10.2, CUDNN_VERSION=7.6.5, CXX_COMPILER=/opt/rh/devtoolset-7/root/usr/bin/c++, CXX_FLAGS= -Wno-deprecated -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -fopenmp -DNDEBUG -DUSE_KINETO -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -DEDGE_PROFILER_USE_KINETO -O2 -fPIC -Wno-narrowing -Wall -Wextra -Werror=return-type -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-unused-local-typedefs -Wno-strict-overflow -Wno-strict-aliasing -Wno-error=deprecated-declarations -Wno-stringop-overflow -Wno-psabi -Wno-error=pedantic -Wno-error=redundant-decls -Wno-error=old-style-cast -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, TORCH_VERSION=1.10.2, USE_CUDA=ON, USE_CUDNN=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=ON, USE_NNPACK=ON, USE_OPENMP=ON, 
+
+TorchVision: 0.11.3+cu102
+OpenCV: 4.5.3
+mani_skill_learn: 1.0.0
+------------------------------------------------------------
+
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:34:23 - Config:
+agent = dict(
+    type='MBPO',
+    batch_size=1024,
+    gamma=0.95,
+    update_coeff=0.005,
+    alpha=0.2,
+    target_update_interval=1,
+    automatic_alpha_tuning=True,
+    alpha_optim_cfg=dict(type='Adam', lr=0.0003),
+    policy_cfg=dict(
+        type='ContinuousPolicy',
+        policy_head_cfg=dict(
+            type='GaussianHead', log_sig_min=-20, log_sig_max=2,
+            epsilon=1e-06),
+        nn_cfg=dict(
+            type='LinearMLP',
+            norm_cfg=None,
+            mlp_spec=['obs_shape', 256, 256, 256, 'action_shape * 2'],
+            bias='auto',
+            inactivated_output=True,
+            linear_init_cfg=dict(type='xavier_init', gain=1, bias=0)),
+        optim_cfg=dict(type='Adam', lr=0.0003)),
+    value_cfg=dict(
+        type='ContinuousValue',
+        num_heads=2,
+        nn_cfg=dict(
+            type='LinearMLP',
+            norm_cfg=None,
+            bias='auto',
+            mlp_spec=['obs_shape + action_shape', 256, 256, 256, 1],
+            inactivated_output=True,
+            linear_init_cfg=dict(type='xavier_init', gain=1, bias=0)),
+        optim_cfg=dict(type='Adam', lr=0.0003)),
+    model_cfg=dict(
+        type='Ensemble_model',
+        num_heads=3,
+        nn_cfg=dict(
+            type='LinearMLP',
+            norm_cfg=None,
+            bias='auto',
+            mlp_spec=[
+                'obs_shape + action_shape', 256, 256, 256, 'obs_shape + 1'
+            ],
+            inactivated_output=True,
+            linear_init_cfg=dict(type='xavier_init', gain=1, bias=0)),
+        optim_cfg=dict(type='Adam', lr=0.003)))
+log_level = 'INFO'
+train_mfrl_cfg = dict(
+    on_policy=False,
+    total_steps=1000000,
+    warm_steps=4000,
+    n_eval=200000,
+    n_checkpoint=200000,
+    n_steps=8,
+    n_updates=4)
+rollout_cfg = dict(
+    type='BatchRollout',
+    use_cost=False,
+    reward_only=False,
+    num_procs=8,
+    with_info=False,
+    env_cfg=dict(
+        type='gym',
+        unwrapped=False,
+        reward_type='dense',
+        env_name='OpenCabinetDrawer_1000_link_0-v0'))
+eval_cfg = dict(
+    type='BatchEvaluation',
+    num=10,
+    num_procs=2,
+    use_hidden_state=False,
+    start_state=None,
+    save_traj=True,
+    save_video=True,
+    use_log=False,
+    env_cfg=dict(
+        type='gym',
+        unwrapped=False,
+        reward_type='dense',
+        env_name='OpenCabinetDrawer_1000_link_0-v0'))
+env_cfg = dict(
+    type='gym',
+    unwrapped=False,
+    reward_type='dense',
+    env_name='OpenCabinetDrawer_1000_link_0-v0')
+replay_cfg = dict(type='ReplayMemory', capacity=500000)
+replay_model_cfg = dict(type='ReplayMemory', capacity=500000)
+work_dir = './work_dirs/OpenCabinetDrawer_1000_link_0-v0/MBPO'
+
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:34:23 - Set random seed to 0
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:34:27 - State shape:75, action shape:Box(-1.0, 1.0, (13,), float32)
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:34:31 - We do not use distributed training, but we support data parallel in torch
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:34:31 - MBPO(
+  (policy): ContinuousPolicy(
+    (backbone): LinearMLP(
+      (mlp): Sequential(
+        (linear0): Linear(in_features=75, out_features=256, bias=True)
+        (act0): ReLU()
+        (linear1): Linear(in_features=256, out_features=256, bias=True)
+        (act1): ReLU()
+        (linear2): Linear(in_features=256, out_features=256, bias=True)
+        (act2): ReLU()
+        (linear3): Linear(in_features=256, out_features=26, bias=True)
+      )
+    )
+    (policy_head): GaussianHead()
+  )
+  (critic): ContinuousValue(
+    (values): ModuleList(
+      (0): LinearMLP(
+        (mlp): Sequential(
+          (linear0): Linear(in_features=88, out_features=256, bias=True)
+          (act0): ReLU()
+          (linear1): Linear(in_features=256, out_features=256, bias=True)
+          (act1): ReLU()
+          (linear2): Linear(in_features=256, out_features=256, bias=True)
+          (act2): ReLU()
+          (linear3): Linear(in_features=256, out_features=1, bias=True)
+        )
+      )
+      (1): LinearMLP(
+        (mlp): Sequential(
+          (linear0): Linear(in_features=88, out_features=256, bias=True)
+          (act0): ReLU()
+          (linear1): Linear(in_features=256, out_features=256, bias=True)
+          (act1): ReLU()
+          (linear2): Linear(in_features=256, out_features=256, bias=True)
+          (act2): ReLU()
+          (linear3): Linear(in_features=256, out_features=1, bias=True)
+        )
+      )
+    )
+  )
+  (model): Ensemble_model(
+    (values): ModuleList(
+      (0): LinearMLP(
+        (mlp): Sequential(
+          (linear0): Linear(in_features=88, out_features=256, bias=True)
+          (act0): ReLU()
+          (linear1): Linear(in_features=256, out_features=256, bias=True)
+          (act1): ReLU()
+          (linear2): Linear(in_features=256, out_features=256, bias=True)
+          (act2): ReLU()
+          (linear3): Linear(in_features=256, out_features=76, bias=True)
+        )
+      )
+      (1): LinearMLP(
+        (mlp): Sequential(
+          (linear0): Linear(in_features=88, out_features=256, bias=True)
+          (act0): ReLU()
+          (linear1): Linear(in_features=256, out_features=256, bias=True)
+          (act1): ReLU()
+          (linear2): Linear(in_features=256, out_features=256, bias=True)
+          (act2): ReLU()
+          (linear3): Linear(in_features=256, out_features=76, bias=True)
+        )
+      )
+      (2): LinearMLP(
+        (mlp): Sequential(
+          (linear0): Linear(in_features=88, out_features=256, bias=True)
+          (act0): ReLU()
+          (linear1): Linear(in_features=256, out_features=256, bias=True)
+          (act1): ReLU()
+          (linear2): Linear(in_features=256, out_features=256, bias=True)
+          (act2): ReLU()
+          (linear3): Linear(in_features=256, out_features=76, bias=True)
+        )
+      )
+    )
+  )
+  (target_critic): ContinuousValue(
+    (values): ModuleList(
+      (0): LinearMLP(
+        (mlp): Sequential(
+          (linear0): Linear(in_features=88, out_features=256, bias=True)
+          (act0): ReLU()
+          (linear1): Linear(in_features=256, out_features=256, bias=True)
+          (act1): ReLU()
+          (linear2): Linear(in_features=256, out_features=256, bias=True)
+          (act2): ReLU()
+          (linear3): Linear(in_features=256, out_features=1, bias=True)
+        )
+      )
+      (1): LinearMLP(
+        (mlp): Sequential(
+          (linear0): Linear(in_features=88, out_features=256, bias=True)
+          (act0): ReLU()
+          (linear1): Linear(in_features=256, out_features=256, bias=True)
+          (act1): ReLU()
+          (linear2): Linear(in_features=256, out_features=256, bias=True)
+          (act2): ReLU()
+          (linear3): Linear(in_features=256, out_features=1, bias=True)
+        )
+      )
+    )
+  )
+)
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:34:31 - Rollout state dim: (8, 75), action dim: 8
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:34:44 - Finish 4000 warm-up steps!
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:35:10 - 5600/1000000(1%) Passed time:26s ETA:4h34m59s pred loss:0.66 episode_length:200.00 episode_reward:-2743.79 critic_loss:0.38 max_critic_abs_err:2.52 policy_loss:10.65 alpha:0.80 alpha_loss:17.38 q:-17.68 q_target:-17.60 log_pi:-8.83 memory:8.40G gpu_mem_ratio:16.8% gpu_mem:1.81G gpu_mem_this:1.79G gpu_util:11%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:35:37 - 7200/1000000(1%) Passed time:53s ETA:4h38m55s pred loss:0.27 episode_length:200.00 episode_reward:-2684.63 critic_loss:1.42 max_critic_abs_err:3.93 policy_loss:27.53 alpha:0.65 alpha_loss:13.97 q:-33.23 q_target:-33.10 log_pi:-8.62 memory:8.42G gpu_mem_ratio:16.9% gpu_mem:1.82G gpu_mem_this:1.81G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:36:06 - 8800/1000000(1%) Passed time:1m22s ETA:4h44m8s pred loss:0.17 episode_length:200.00 episode_reward:-2635.03 critic_loss:3.03 max_critic_abs_err:6.70 policy_loss:45.22 alpha:0.53 alpha_loss:11.30 q:-49.94 q_target:-49.71 log_pi:-8.27 memory:8.41G gpu_mem_ratio:41.3% gpu_mem:4.45G gpu_mem_this:1.86G gpu_util:38%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:36:37 - 10400/1000000(1%) Passed time:1m53s ETA:4h52m54s pred loss:0.13 episode_length:200.00 episode_reward:-2434.34 critic_loss:5.66 max_critic_abs_err:7.42 policy_loss:62.68 alpha:0.44 alpha_loss:9.27 q:-66.63 q_target:-66.28 log_pi:-8.05 memory:8.41G gpu_mem_ratio:40.1% gpu_mem:4.32G gpu_mem_this:1.86G gpu_util:18%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:37:03 - 12000/1000000(1%) Passed time:2m19s ETA:4h48m22s pred loss:0.11 episode_length:200.00 episode_reward:-2549.70 critic_loss:8.73 max_critic_abs_err:10.40 policy_loss:78.69 alpha:0.37 alpha_loss:7.57 q:-82.12 q_target:-81.61 log_pi:-7.60 memory:8.42G gpu_mem_ratio:18.1% gpu_mem:1.95G gpu_mem_this:1.93G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:37:31 - 13600/1000000(1%) Passed time:2m47s ETA:4h47m59s pred loss:0.10 episode_length:200.00 episode_reward:-2446.41 critic_loss:11.73 max_critic_abs_err:9.90 policy_loss:93.16 alpha:0.31 alpha_loss:6.00 q:-96.14 q_target:-95.56 log_pi:-6.48 memory:8.43G gpu_mem_ratio:18.3% gpu_mem:1.97G gpu_mem_this:1.95G gpu_util:8%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:37:58 - 15200/1000000(2%) Passed time:3m14s ETA:4h46m36s pred loss:0.09 episode_length:200.00 episode_reward:-2483.10 critic_loss:14.66 max_critic_abs_err:12.79 policy_loss:105.47 alpha:0.26 alpha_loss:4.87 q:-108.15 q_target:-107.55 log_pi:-5.76 memory:8.43G gpu_mem_ratio:18.8% gpu_mem:2.02G gpu_mem_this:2.01G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:38:25 - 16800/1000000(2%) Passed time:3m40s ETA:4h44m pred loss:0.08 episode_length:200.00 episode_reward:-2501.25 critic_loss:17.15 max_critic_abs_err:12.91 policy_loss:116.53 alpha:0.22 alpha_loss:3.86 q:-118.84 q_target:-118.25 log_pi:-4.61 memory:8.44G gpu_mem_ratio:19.2% gpu_mem:2.07G gpu_mem_this:2.05G gpu_util:11%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:38:51 - 18400/1000000(2%) Passed time:4m7s ETA:4h42m4s pred loss:0.07 episode_length:200.00 episode_reward:-2451.86 critic_loss:19.02 max_critic_abs_err:15.19 policy_loss:126.11 alpha:0.19 alpha_loss:3.05 q:-128.35 q_target:-127.65 log_pi:-3.41 memory:8.44G gpu_mem_ratio:19.7% gpu_mem:2.12G gpu_mem_this:2.10G gpu_util:12%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:39:17 - 20000/1000000(2%) Passed time:4m33s ETA:4h40m35s pred loss:0.06 episode_length:200.00 episode_reward:-2358.96 critic_loss:21.97 max_critic_abs_err:15.60 policy_loss:133.63 alpha:0.16 alpha_loss:2.38 q:-135.93 q_target:-135.14 log_pi:-2.01 memory:8.45G gpu_mem_ratio:19.7% gpu_mem:2.12G gpu_mem_this:2.10G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:39:45 - 21600/1000000(2%) Passed time:5m ETA:4h40m4s pred loss:0.06 episode_length:200.00 episode_reward:-2403.52 critic_loss:21.38 max_critic_abs_err:16.16 policy_loss:140.06 alpha:0.14 alpha_loss:1.95 q:-142.22 q_target:-141.37 log_pi:-1.42 memory:8.45G gpu_mem_ratio:31.1% gpu_mem:3.35G gpu_mem_this:2.14G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:40:16 - 23200/1000000(2%) Passed time:5m31s ETA:4h42m39s pred loss:0.05 episode_length:200.00 episode_reward:-2354.13 critic_loss:22.55 max_critic_abs_err:15.11 policy_loss:146.36 alpha:0.12 alpha_loss:1.51 q:-148.35 q_target:-147.60 log_pi:-0.09 memory:8.46G gpu_mem_ratio:37.0% gpu_mem:3.99G gpu_mem_this:2.28G gpu_util:39%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:40:44 - 24800/1000000(2%) Passed time:5m59s ETA:4h42m22s pred loss:0.05 episode_length:200.00 episode_reward:-2367.63 critic_loss:22.08 max_critic_abs_err:15.89 policy_loss:150.68 alpha:0.10 alpha_loss:1.13 q:-152.71 q_target:-151.98 log_pi:1.60 memory:8.46G gpu_mem_ratio:41.1% gpu_mem:4.42G gpu_mem_this:2.43G gpu_util:12%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:41:14 - 26400/1000000(3%) Passed time:6m29s ETA:4h43m39s pred loss:0.05 episode_length:200.00 episode_reward:-2339.84 critic_loss:21.72 max_critic_abs_err:15.09 policy_loss:155.34 alpha:0.09 alpha_loss:0.88 q:-157.13 q_target:-156.37 log_pi:2.75 memory:8.47G gpu_mem_ratio:66.1% gpu_mem:7.11G gpu_mem_this:2.59G gpu_util:37%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:41:45 - 28000/1000000(3%) Passed time:7m ETA:4h45m31s pred loss:0.04 episode_length:200.00 episode_reward:-2337.00 critic_loss:22.49 max_critic_abs_err:21.06 policy_loss:159.14 alpha:0.07 alpha_loss:0.70 q:-161.02 q_target:-160.23 log_pi:3.47 memory:8.48G gpu_mem_ratio:66.1% gpu_mem:7.11G gpu_mem_this:2.59G gpu_util:12%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:42:14 - 29600/1000000(3%) Passed time:7m29s ETA:4h45m25s pred loss:0.04 episode_length:200.00 episode_reward:-2281.45 critic_loss:20.61 max_critic_abs_err:16.38 policy_loss:162.51 alpha:0.06 alpha_loss:0.51 q:-164.37 q_target:-163.63 log_pi:4.89 memory:8.48G gpu_mem_ratio:67.4% gpu_mem:7.26G gpu_mem_this:2.73G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:42:42 - 31200/1000000(3%) Passed time:7m58s ETA:4h45m4s pred loss:0.05 episode_length:200.00 episode_reward:-2331.95 critic_loss:23.78 max_critic_abs_err:20.18 policy_loss:165.65 alpha:0.05 alpha_loss:0.37 q:-167.46 q_target:-166.74 log_pi:6.23 memory:8.49G gpu_mem_ratio:68.8% gpu_mem:7.41G gpu_mem_this:2.88G gpu_util:17%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:43:11 - 32800/1000000(3%) Passed time:8m27s ETA:4h45m7s pred loss:0.04 episode_length:200.00 episode_reward:-2285.19 critic_loss:23.06 max_critic_abs_err:19.45 policy_loss:167.16 alpha:0.05 alpha_loss:0.32 q:-169.11 q_target:-168.39 log_pi:6.40 memory:8.49G gpu_mem_ratio:70.0% gpu_mem:7.53G gpu_mem_this:3.01G gpu_util:18%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:43:41 - 34400/1000000(3%) Passed time:8m57s ETA:4h45m30s pred loss:0.04 episode_length:200.00 episode_reward:-2321.46 critic_loss:23.75 max_critic_abs_err:19.67 policy_loss:167.90 alpha:0.04 alpha_loss:0.18 q:-170.02 q_target:-169.31 log_pi:8.69 memory:8.50G gpu_mem_ratio:72.4% gpu_mem:7.79G gpu_mem_this:3.14G gpu_util:11%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:44:10 - 36000/1000000(4%) Passed time:9m25s ETA:4h45m17s pred loss:0.04 episode_length:200.00 episode_reward:-2271.51 critic_loss:24.42 max_critic_abs_err:18.92 policy_loss:168.42 alpha:0.04 alpha_loss:0.11 q:-170.70 q_target:-169.98 log_pi:10.05 memory:8.51G gpu_mem_ratio:72.4% gpu_mem:7.79G gpu_mem_this:3.14G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:44:39 - 37600/1000000(4%) Passed time:9m54s ETA:4h45m11s pred loss:0.05 episode_length:200.00 episode_reward:-2464.26 critic_loss:22.72 max_critic_abs_err:19.35 policy_loss:167.79 alpha:0.03 alpha_loss:0.05 q:-170.53 q_target:-169.71 log_pi:11.66 memory:8.51G gpu_mem_ratio:76.0% gpu_mem:8.18G gpu_mem_this:3.52G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:45:08 - 39200/1000000(4%) Passed time:10m24s ETA:4h45m21s pred loss:0.03 episode_length:200.00 episode_reward:-2788.48 critic_loss:21.59 max_critic_abs_err:16.19 policy_loss:167.99 alpha:0.03 alpha_loss:0.05 q:-170.41 q_target:-169.73 log_pi:11.38 memory:8.52G gpu_mem_ratio:79.8% gpu_mem:8.59G gpu_mem_this:3.93G gpu_util:13%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:45:38 - 40800/1000000(4%) Passed time:10m53s ETA:4h45m16s pred loss:0.03 episode_length:200.00 episode_reward:-2478.72 critic_loss:21.99 max_critic_abs_err:17.41 policy_loss:168.61 alpha:0.03 alpha_loss:0.03 q:-170.90 q_target:-170.21 log_pi:11.91 memory:8.52G gpu_mem_ratio:83.8% gpu_mem:9.02G gpu_mem_this:4.36G gpu_util:22%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:46:07 - 42400/1000000(4%) Passed time:11m22s ETA:4h44m59s pred loss:0.03 episode_length:200.00 episode_reward:-2390.01 critic_loss:20.96 max_critic_abs_err:17.33 policy_loss:169.42 alpha:0.03 alpha_loss:0.02 q:-171.68 q_target:-170.96 log_pi:12.47 memory:8.53G gpu_mem_ratio:83.8% gpu_mem:9.02G gpu_mem_this:4.36G gpu_util:23%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:46:36 - 44000/1000000(4%) Passed time:11m52s ETA:4h45m4s pred loss:0.03 episode_length:200.00 episode_reward:-2375.39 critic_loss:21.71 max_critic_abs_err:17.70 policy_loss:170.31 alpha:0.03 alpha_loss:-6.0745e-03 q:-172.63 q_target:-171.85 log_pi:13.23 memory:8.53G gpu_mem_ratio:88.0% gpu_mem:9.47G gpu_mem_this:4.81G gpu_util:33%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:47:06 - 45600/1000000(5%) Passed time:12m22s ETA:4h45m8s pred loss:0.04 episode_length:200.00 episode_reward:-2383.02 critic_loss:22.29 max_critic_abs_err:19.89 policy_loss:171.00 alpha:0.03 alpha_loss:-0.01 q:-173.20 q_target:-172.49 log_pi:13.47 memory:8.54G gpu_mem_ratio:92.4% gpu_mem:9.94G gpu_mem_this:5.29G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:47:37 - 47200/1000000(5%) Passed time:12m52s ETA:4h45m18s pred loss:0.03 episode_length:200.00 episode_reward:-2436.30 critic_loss:22.14 max_critic_abs_err:16.71 policy_loss:171.22 alpha:0.03 alpha_loss:-7.3798e-03 q:-173.62 q_target:-172.88 log_pi:13.27 memory:8.54G gpu_mem_ratio:97.0% gpu_mem:10.43G gpu_mem_this:5.78G gpu_util:12%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:48:06 - 48800/1000000(5%) Passed time:13m22s ETA:4h45m9s pred loss:0.03 episode_length:200.00 episode_reward:-2550.79 critic_loss:22.75 max_critic_abs_err:20.89 policy_loss:171.36 alpha:0.03 alpha_loss:-2.6008e-03 q:-173.53 q_target:-172.83 log_pi:13.09 memory:8.55G gpu_mem_ratio:65.5% gpu_mem:7.05G gpu_mem_this:2.40G gpu_util:12%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:48:35 - 50400/1000000(5%) Passed time:13m51s ETA:4h44m43s pred loss:0.03 episode_length:200.00 episode_reward:-2646.56 critic_loss:22.54 max_critic_abs_err:18.66 policy_loss:172.37 alpha:0.03 alpha_loss:-3.1077e-04 q:-174.59 q_target:-173.83 log_pi:13.01 memory:8.56G gpu_mem_ratio:65.5% gpu_mem:7.05G gpu_mem_this:2.40G gpu_util:12%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:49:04 - 52000/1000000(5%) Passed time:14m20s ETA:4h44m17s pred loss:0.03 episode_length:200.00 episode_reward:-2656.59 critic_loss:21.84 max_critic_abs_err:19.96 policy_loss:172.91 alpha:0.03 alpha_loss:-7.1273e-03 q:-175.00 q_target:-174.27 log_pi:13.27 memory:8.56G gpu_mem_ratio:70.5% gpu_mem:7.59G gpu_mem_this:2.93G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:49:33 - 53600/1000000(5%) Passed time:14m49s ETA:4h44m5s pred loss:0.03 episode_length:200.00 episode_reward:-2604.20 critic_loss:22.35 max_critic_abs_err:18.40 policy_loss:174.16 alpha:0.03 alpha_loss:2.7243e-03 q:-176.09 q_target:-175.39 log_pi:12.89 memory:8.57G gpu_mem_ratio:69.8% gpu_mem:7.51G gpu_mem_this:3.49G gpu_util:20%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:50:03 - 55200/1000000(6%) Passed time:15m18s ETA:4h43m47s pred loss:0.03 episode_length:200.00 episode_reward:-2512.36 critic_loss:21.88 max_critic_abs_err:21.52 policy_loss:174.85 alpha:0.03 alpha_loss:7.3540e-04 q:-176.81 q_target:-176.12 log_pi:12.97 memory:8.57G gpu_mem_ratio:82.2% gpu_mem:8.85G gpu_mem_this:4.07G gpu_util:20%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:50:33 - 56800/1000000(6%) Passed time:15m49s ETA:4h43m55s pred loss:0.03 episode_length:200.00 episode_reward:-2351.23 critic_loss:22.37 max_critic_abs_err:23.30 policy_loss:176.42 alpha:0.02 alpha_loss:3.7384e-03 q:-178.25 q_target:-177.55 log_pi:12.85 memory:8.58G gpu_mem_ratio:82.2% gpu_mem:8.85G gpu_mem_this:4.07G gpu_util:27%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:51:03 - 58400/1000000(6%) Passed time:16m19s ETA:4h43m50s pred loss:0.03 episode_length:200.00 episode_reward:-2273.66 critic_loss:20.77 max_critic_abs_err:18.17 policy_loss:177.47 alpha:0.02 alpha_loss:1.3918e-03 q:-179.39 q_target:-178.67 log_pi:12.94 memory:8.58G gpu_mem_ratio:87.8% gpu_mem:9.45G gpu_mem_this:4.67G gpu_util:13%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:51:35 - 60000/1000000(6%) Passed time:16m51s ETA:4h44m4s pred loss:0.04 episode_length:200.00 episode_reward:-2266.28 critic_loss:20.21 max_critic_abs_err:21.28 policy_loss:178.45 alpha:0.03 alpha_loss:-3.4064e-03 q:-180.22 q_target:-179.57 log_pi:13.14 memory:8.59G gpu_mem_ratio:93.6% gpu_mem:10.07G gpu_mem_this:5.30G gpu_util:23%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:52:06 - 61600/1000000(6%) Passed time:17m22s ETA:4h44m9s pred loss:0.03 episode_length:200.00 episode_reward:-2262.69 critic_loss:20.92 max_critic_abs_err:18.97 policy_loss:178.88 alpha:0.03 alpha_loss:-4.4657e-03 q:-180.85 q_target:-180.16 log_pi:13.18 memory:8.59G gpu_mem_ratio:99.6% gpu_mem:10.72G gpu_mem_this:5.94G gpu_util:28%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:52:37 - 63200/1000000(6%) Passed time:17m53s ETA:4h44m16s pred loss:0.02 episode_length:200.00 episode_reward:-2345.25 critic_loss:21.36 max_critic_abs_err:21.11 policy_loss:178.78 alpha:0.02 alpha_loss:-5.5381e-03 q:-180.57 q_target:-179.84 log_pi:13.22 memory:8.60G gpu_mem_ratio:68.6% gpu_mem:7.39G gpu_mem_this:2.61G gpu_util:22%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:53:08 - 64800/1000000(6%) Passed time:18m23s ETA:4h44m13s pred loss:0.02 episode_length:200.00 episode_reward:-2457.32 critic_loss:21.17 max_critic_abs_err:20.55 policy_loss:180.14 alpha:0.02 alpha_loss:2.4875e-04 q:-182.00 q_target:-181.34 log_pi:12.99 memory:8.61G gpu_mem_ratio:68.6% gpu_mem:7.39G gpu_mem_this:2.61G gpu_util:23%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:53:39 - 66400/1000000(7%) Passed time:18m55s ETA:4h44m25s pred loss:0.03 episode_length:200.00 episode_reward:-2285.45 critic_loss:19.65 max_critic_abs_err:17.57 policy_loss:180.33 alpha:0.02 alpha_loss:7.8762e-03 q:-182.34 q_target:-181.47 log_pi:12.66 memory:8.61G gpu_mem_ratio:75.0% gpu_mem:8.07G gpu_mem_this:3.30G gpu_util:24%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:54:10 - 68000/1000000(7%) Passed time:19m26s ETA:4h44m24s pred loss:0.03 episode_length:200.00 episode_reward:-2310.66 critic_loss:19.82 max_critic_abs_err:18.90 policy_loss:180.82 alpha:0.02 alpha_loss:1.4312e-03 q:-182.62 q_target:-182.03 log_pi:12.94 memory:8.62G gpu_mem_ratio:81.6% gpu_mem:8.78G gpu_mem_this:4.01G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:54:41 - 69600/1000000(7%) Passed time:19m57s ETA:4h44m16s pred loss:0.02 episode_length:200.00 episode_reward:-2394.90 critic_loss:19.88 max_critic_abs_err:18.96 policy_loss:181.16 alpha:0.02 alpha_loss:-4.2281e-03 q:-183.00 q_target:-182.34 log_pi:13.18 memory:8.62G gpu_mem_ratio:88.4% gpu_mem:9.51G gpu_mem_this:4.74G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:55:12 - 71200/1000000(7%) Passed time:20m28s ETA:4h44m12s pred loss:0.03 episode_length:200.00 episode_reward:-2305.12 critic_loss:20.17 max_critic_abs_err:21.83 policy_loss:180.93 alpha:0.02 alpha_loss:1.2821e-03 q:-182.72 q_target:-182.06 log_pi:12.94 memory:8.63G gpu_mem_ratio:88.4% gpu_mem:9.51G gpu_mem_this:4.74G gpu_util:21%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:55:44 - 72800/1000000(7%) Passed time:20m59s ETA:4h44m13s pred loss:0.03 episode_length:200.00 episode_reward:-2283.22 critic_loss:20.50 max_critic_abs_err:20.86 policy_loss:181.49 alpha:0.02 alpha_loss:2.1750e-03 q:-183.32 q_target:-182.60 log_pi:12.90 memory:8.64G gpu_mem_ratio:95.4% gpu_mem:10.26G gpu_mem_this:5.49G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:56:15 - 74400/1000000(7%) Passed time:21m31s ETA:4h44m14s pred loss:0.02 episode_length:200.00 episode_reward:-2250.63 critic_loss:19.78 max_critic_abs_err:18.03 policy_loss:182.09 alpha:0.02 alpha_loss:2.2275e-03 q:-183.72 q_target:-183.14 log_pi:12.89 memory:8.64G gpu_mem_ratio:69.7% gpu_mem:7.50G gpu_mem_this:2.73G gpu_util:16%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:56:48 - 76000/1000000(8%) Passed time:22m3s ETA:4h44m22s pred loss:0.02 episode_length:200.00 episode_reward:-2397.18 critic_loss:19.80 max_critic_abs_err:20.64 policy_loss:182.80 alpha:0.02 alpha_loss:3.0484e-03 q:-184.56 q_target:-183.90 log_pi:12.85 memory:8.65G gpu_mem_ratio:77.1% gpu_mem:8.30G gpu_mem_this:3.52G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:57:20 - 77600/1000000(8%) Passed time:22m36s ETA:4h44m28s pred loss:0.02 episode_length:200.00 episode_reward:-2410.71 critic_loss:20.64 max_critic_abs_err:26.59 policy_loss:183.44 alpha:0.02 alpha_loss:-7.9930e-03 q:-185.00 q_target:-184.37 log_pi:13.40 memory:8.65G gpu_mem_ratio:84.7% gpu_mem:9.11G gpu_mem_this:4.34G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:57:51 - 79200/1000000(8%) Passed time:23m6s ETA:4h44m16s pred loss:0.03 episode_length:200.00 episode_reward:-2251.59 critic_loss:20.45 max_critic_abs_err:20.97 policy_loss:184.10 alpha:0.02 alpha_loss:4.3181e-03 q:-185.54 q_target:-184.96 log_pi:12.78 memory:8.66G gpu_mem_ratio:84.7% gpu_mem:9.11G gpu_mem_this:4.34G gpu_util:17%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:58:22 - 80800/1000000(8%) Passed time:23m38s ETA:4h44m8s pred loss:0.15 episode_length:195.25 episode_reward:-2447.37 critic_loss:21.99 max_critic_abs_err:21.90 policy_loss:184.56 alpha:0.02 alpha_loss:3.8451e-04 q:-186.38 q_target:-185.66 log_pi:12.98 memory:8.67G gpu_mem_ratio:92.5% gpu_mem:9.95G gpu_mem_this:5.18G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:58:55 - 82400/1000000(8%) Passed time:24m11s ETA:4h44m17s pred loss:0.02 episode_length:200.00 episode_reward:-2455.35 critic_loss:20.83 max_critic_abs_err:21.07 policy_loss:184.09 alpha:0.02 alpha_loss:-7.5776e-04 q:-185.84 q_target:-185.16 log_pi:13.04 memory:8.67G gpu_mem_ratio:71.3% gpu_mem:7.67G gpu_mem_this:2.89G gpu_util:17%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 20:59:28 - 84000/1000000(8%) Passed time:24m43s ETA:4h44m24s pred loss:0.02 episode_length:200.00 episode_reward:-2350.33 critic_loss:20.91 max_critic_abs_err:18.68 policy_loss:183.94 alpha:0.02 alpha_loss:3.2362e-03 q:-185.67 q_target:-185.02 log_pi:12.84 memory:8.68G gpu_mem_ratio:79.4% gpu_mem:8.55G gpu_mem_this:3.77G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:00:00 - 85600/1000000(9%) Passed time:25m15s ETA:4h44m21s pred loss:0.05 episode_length:200.00 episode_reward:-2515.16 critic_loss:21.28 max_critic_abs_err:23.81 policy_loss:184.24 alpha:0.02 alpha_loss:1.2172e-03 q:-185.84 q_target:-185.25 log_pi:12.94 memory:8.68G gpu_mem_ratio:87.8% gpu_mem:9.45G gpu_mem_this:4.67G gpu_util:22%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:00:32 - 87200/1000000(9%) Passed time:25m48s ETA:4h44m22s pred loss:0.02 episode_length:200.00 episode_reward:-2442.90 critic_loss:22.50 max_critic_abs_err:22.13 policy_loss:185.08 alpha:0.02 alpha_loss:-2.5313e-03 q:-186.67 q_target:-186.02 log_pi:13.13 memory:8.69G gpu_mem_ratio:87.8% gpu_mem:9.45G gpu_mem_this:4.67G gpu_util:26%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:01:04 - 88800/1000000(9%) Passed time:26m20s ETA:4h44m15s pred loss:0.02 episode_length:200.00 episode_reward:-2435.18 critic_loss:20.86 max_critic_abs_err:21.72 policy_loss:185.90 alpha:0.02 alpha_loss:-3.0343e-03 q:-187.40 q_target:-186.79 log_pi:13.16 memory:8.69G gpu_mem_ratio:96.4% gpu_mem:10.37G gpu_mem_this:5.60G gpu_util:21%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:01:37 - 90400/1000000(9%) Passed time:26m53s ETA:4h44m21s pred loss:0.03 episode_length:200.00 episode_reward:-2459.46 critic_loss:22.08 max_critic_abs_err:21.16 policy_loss:187.00 alpha:0.02 alpha_loss:-1.1475e-03 q:-188.34 q_target:-187.70 log_pi:13.06 memory:8.70G gpu_mem_ratio:72.3% gpu_mem:7.78G gpu_mem_this:3.00G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:02:10 - 92000/1000000(9%) Passed time:27m26s ETA:4h44m26s pred loss:0.05 episode_length:200.00 episode_reward:-2474.84 critic_loss:22.54 max_critic_abs_err:20.36 policy_loss:188.32 alpha:0.02 alpha_loss:-5.6471e-03 q:-189.83 q_target:-189.16 log_pi:13.32 memory:8.70G gpu_mem_ratio:81.3% gpu_mem:8.74G gpu_mem_this:3.97G gpu_util:26%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:02:43 - 93600/1000000(9%) Passed time:27m59s ETA:4h44m24s pred loss:0.07 episode_length:200.00 episode_reward:-2620.40 critic_loss:21.73 max_critic_abs_err:18.33 policy_loss:188.24 alpha:0.02 alpha_loss:6.0338e-03 q:-189.55 q_target:-189.02 log_pi:12.66 memory:8.71G gpu_mem_ratio:81.3% gpu_mem:8.74G gpu_mem_this:3.97G gpu_util:22%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:03:16 - 95200/1000000(10%) Passed time:28m32s ETA:4h44m24s pred loss:0.02 episode_length:200.00 episode_reward:-2519.67 critic_loss:21.80 max_critic_abs_err:21.78 policy_loss:188.80 alpha:0.02 alpha_loss:-5.5284e-03 q:-190.22 q_target:-189.54 log_pi:13.30 memory:8.72G gpu_mem_ratio:90.4% gpu_mem:9.73G gpu_mem_this:4.95G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:03:49 - 96800/1000000(10%) Passed time:29m5s ETA:4h44m21s pred loss:0.02 episode_length:200.00 episode_reward:-2603.13 critic_loss:22.80 max_critic_abs_err:19.55 policy_loss:189.31 alpha:0.02 alpha_loss:-4.7286e-03 q:-190.81 q_target:-190.21 log_pi:13.26 memory:8.72G gpu_mem_ratio:99.8% gpu_mem:10.74G gpu_mem_this:5.96G gpu_util:14%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:04:22 - 98400/1000000(10%) Passed time:29m37s ETA:4h44m14s pred loss:0.02 episode_length:200.00 episode_reward:-2517.30 critic_loss:20.91 max_critic_abs_err:19.76 policy_loss:189.61 alpha:0.02 alpha_loss:-1.6348e-03 q:-190.97 q_target:-190.34 log_pi:13.09 memory:8.73G gpu_mem_ratio:73.2% gpu_mem:7.88G gpu_mem_this:3.10G gpu_util:20%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:04:54 - 100000/1000000(10%) Passed time:30m10s ETA:4h44m8s pred loss:0.02 episode_length:200.00 episode_reward:-2466.91 critic_loss:21.38 max_critic_abs_err:17.68 policy_loss:190.28 alpha:0.02 alpha_loss:-0.01 q:-191.58 q_target:-190.88 log_pi:13.61 memory:8.73G gpu_mem_ratio:83.0% gpu_mem:8.93G gpu_mem_this:4.15G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:05:26 - 101600/1000000(10%) Passed time:30m42s ETA:4h43m55s pred loss:0.02 episode_length:200.00 episode_reward:-2514.13 critic_loss:21.41 max_critic_abs_err:19.88 policy_loss:190.70 alpha:0.02 alpha_loss:1.1320e-03 q:-192.21 q_target:-191.55 log_pi:12.94 memory:8.74G gpu_mem_ratio:83.0% gpu_mem:8.93G gpu_mem_this:4.15G gpu_util:7%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:05:59 - 103200/1000000(10%) Passed time:31m15s ETA:4h43m48s pred loss:0.02 episode_length:200.00 episode_reward:-2489.49 critic_loss:21.63 max_critic_abs_err:23.43 policy_loss:191.16 alpha:0.02 alpha_loss:9.0880e-03 q:-192.45 q_target:-191.80 log_pi:12.48 memory:8.75G gpu_mem_ratio:93.0% gpu_mem:10.01G gpu_mem_this:5.23G gpu_util:24%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:06:31 - 104800/1000000(10%) Passed time:31m47s ETA:4h43m38s pred loss:0.02 episode_length:200.00 episode_reward:-2545.63 critic_loss:20.50 max_critic_abs_err:20.59 policy_loss:191.57 alpha:0.02 alpha_loss:5.7062e-03 q:-192.87 q_target:-192.29 log_pi:12.67 memory:8.75G gpu_mem_ratio:73.9% gpu_mem:7.95G gpu_mem_this:3.17G gpu_util:12%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:07:03 - 106400/1000000(11%) Passed time:32m19s ETA:4h43m22s pred loss:0.03 episode_length:200.00 episode_reward:-2511.95 critic_loss:20.46 max_critic_abs_err:18.89 policy_loss:191.91 alpha:0.02 alpha_loss:-1.9606e-03 q:-193.29 q_target:-192.68 log_pi:13.12 memory:8.76G gpu_mem_ratio:84.2% gpu_mem:9.07G gpu_mem_this:4.29G gpu_util:11%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:07:36 - 108000/1000000(11%) Passed time:32m52s ETA:4h43m9s pred loss:0.03 episode_length:200.00 episode_reward:-2449.88 critic_loss:22.21 max_critic_abs_err:18.78 policy_loss:192.30 alpha:0.02 alpha_loss:2.0322e-03 q:-193.64 q_target:-193.11 log_pi:12.88 memory:8.76G gpu_mem_ratio:84.2% gpu_mem:9.07G gpu_mem_this:4.29G gpu_util:28%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:08:09 - 109600/1000000(11%) Passed time:33m24s ETA:4h43m pred loss:0.03 episode_length:200.00 episode_reward:-2386.50 critic_loss:22.58 max_critic_abs_err:18.57 policy_loss:193.00 alpha:0.02 alpha_loss:2.0624e-03 q:-194.29 q_target:-193.67 log_pi:12.87 memory:8.77G gpu_mem_ratio:94.8% gpu_mem:10.20G gpu_mem_this:5.43G gpu_util:22%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:08:42 - 111200/1000000(11%) Passed time:33m58s ETA:4h42m55s pred loss:0.02 episode_length:200.00 episode_reward:-2371.36 critic_loss:21.39 max_critic_abs_err:20.59 policy_loss:193.62 alpha:0.02 alpha_loss:9.2048e-04 q:-194.88 q_target:-194.25 log_pi:12.94 memory:8.77G gpu_mem_ratio:74.5% gpu_mem:8.02G gpu_mem_this:3.24G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:09:16 - 112800/1000000(11%) Passed time:34m32s ETA:4h42m54s pred loss:0.02 episode_length:200.00 episode_reward:-2295.14 critic_loss:23.30 max_critic_abs_err:20.88 policy_loss:194.95 alpha:0.02 alpha_loss:-6.0258e-03 q:-196.16 q_target:-195.49 log_pi:13.40 memory:8.78G gpu_mem_ratio:85.5% gpu_mem:9.20G gpu_mem_this:4.42G gpu_util:36%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:09:50 - 114400/1000000(11%) Passed time:35m5s ETA:4h42m48s pred loss:0.02 episode_length:200.00 episode_reward:-2324.70 critic_loss:21.27 max_critic_abs_err:17.48 policy_loss:195.38 alpha:0.01 alpha_loss:0.01 q:-196.71 q_target:-196.02 log_pi:12.18 memory:8.79G gpu_mem_ratio:96.7% gpu_mem:10.40G gpu_mem_this:5.63G gpu_util:11%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:10:24 - 116000/1000000(12%) Passed time:35m40s ETA:4h42m48s pred loss:0.04 episode_length:199.50 episode_reward:-2284.80 critic_loss:22.11 max_critic_abs_err:19.25 policy_loss:196.11 alpha:0.01 alpha_loss:-3.9812e-03 q:-197.44 q_target:-196.79 log_pi:13.27 memory:8.79G gpu_mem_ratio:96.7% gpu_mem:10.40G gpu_mem_this:5.63G gpu_util:22%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:11:00 - 117600/1000000(12%) Passed time:36m16s ETA:4h43m pred loss:0.02 episode_length:200.00 episode_reward:-2275.46 critic_loss:22.29 max_critic_abs_err:21.27 policy_loss:195.74 alpha:0.01 alpha_loss:-1.3521e-03 q:-197.02 q_target:-196.43 log_pi:13.09 memory:8.80G gpu_mem_ratio:75.3% gpu_mem:8.11G gpu_mem_this:3.33G gpu_util:22%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:11:35 - 119200/1000000(12%) Passed time:36m51s ETA:4h43m5s pred loss:0.02 episode_length:200.00 episode_reward:-2219.26 critic_loss:20.88 max_critic_abs_err:19.66 policy_loss:196.18 alpha:0.01 alpha_loss:5.7520e-04 q:-197.45 q_target:-196.86 log_pi:12.96 memory:8.80G gpu_mem_ratio:86.9% gpu_mem:9.35G gpu_mem_this:4.58G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:12:08 - 120800/1000000(12%) Passed time:37m24s ETA:4h42m51s pred loss:0.02 episode_length:200.00 episode_reward:-2251.99 critic_loss:21.36 max_critic_abs_err:17.85 policy_loss:196.50 alpha:0.02 alpha_loss:3.1791e-03 q:-197.73 q_target:-197.19 log_pi:12.79 memory:8.81G gpu_mem_ratio:98.7% gpu_mem:10.62G gpu_mem_this:5.84G gpu_util:20%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:12:41 - 122400/1000000(12%) Passed time:37m57s ETA:4h42m36s pred loss:0.02 episode_length:200.00 episode_reward:-2288.63 critic_loss:21.40 max_critic_abs_err:18.08 policy_loss:196.67 alpha:0.01 alpha_loss:-3.5300e-03 q:-198.02 q_target:-197.37 log_pi:13.24 memory:8.81G gpu_mem_ratio:98.7% gpu_mem:10.62G gpu_mem_this:5.84G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:13:15 - 124000/1000000(12%) Passed time:38m30s ETA:4h42m27s pred loss:0.03 episode_length:200.00 episode_reward:-2330.77 critic_loss:20.63 max_critic_abs_err:20.32 policy_loss:197.55 alpha:0.01 alpha_loss:3.7646e-03 q:-198.75 q_target:-198.19 log_pi:12.75 memory:8.82G gpu_mem_ratio:76.0% gpu_mem:8.18G gpu_mem_this:3.41G gpu_util:23%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:13:49 - 125600/1000000(13%) Passed time:39m5s ETA:4h42m20s pred loss:0.02 episode_length:200.00 episode_reward:-2323.90 critic_loss:21.41 max_critic_abs_err:19.58 policy_loss:197.44 alpha:0.01 alpha_loss:2.6835e-03 q:-198.70 q_target:-198.07 log_pi:12.81 memory:8.82G gpu_mem_ratio:88.2% gpu_mem:9.49G gpu_mem_this:4.72G gpu_util:12%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:14:23 - 127200/1000000(13%) Passed time:39m39s ETA:4h42m12s pred loss:0.03 episode_length:200.00 episode_reward:-2291.13 critic_loss:21.01 max_critic_abs_err:20.35 policy_loss:198.29 alpha:0.01 alpha_loss:8.5822e-04 q:-199.53 q_target:-198.80 log_pi:12.94 memory:8.83G gpu_mem_ratio:76.5% gpu_mem:8.23G gpu_mem_this:3.45G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:14:57 - 128800/1000000(13%) Passed time:40m13s ETA:4h42m2s pred loss:0.02 episode_length:200.00 episode_reward:-2381.85 critic_loss:20.61 max_critic_abs_err:18.64 policy_loss:198.10 alpha:0.01 alpha_loss:2.7264e-03 q:-199.18 q_target:-198.67 log_pi:12.80 memory:8.83G gpu_mem_ratio:89.1% gpu_mem:9.58G gpu_mem_this:4.81G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:15:32 - 130400/1000000(13%) Passed time:40m48s ETA:4h42m2s pred loss:0.02 episode_length:200.00 episode_reward:-2277.27 critic_loss:19.63 max_critic_abs_err:14.81 policy_loss:199.31 alpha:0.01 alpha_loss:3.7660e-03 q:-200.39 q_target:-199.84 log_pi:12.73 memory:8.83G gpu_mem_ratio:89.1% gpu_mem:9.58G gpu_mem_this:4.81G gpu_util:18%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:16:10 - 132000/1000000(13%) Passed time:41m25s ETA:4h42m15s pred loss:0.02 episode_length:200.00 episode_reward:-2192.31 critic_loss:17.68 max_critic_abs_err:14.91 policy_loss:199.88 alpha:0.01 alpha_loss:-1.9721e-03 q:-201.00 q_target:-200.42 log_pi:13.14 memory:8.84G gpu_mem_ratio:76.8% gpu_mem:8.27G gpu_mem_this:3.49G gpu_util:16%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:16:47 - 133600/1000000(13%) Passed time:42m3s ETA:4h42m26s pred loss:0.04 episode_length:200.00 episode_reward:-2193.78 critic_loss:16.62 max_critic_abs_err:12.43 policy_loss:199.96 alpha:0.01 alpha_loss:-7.7480e-03 q:-201.25 q_target:-200.61 log_pi:13.52 memory:8.84G gpu_mem_ratio:89.8% gpu_mem:9.66G gpu_mem_this:4.88G gpu_util:12%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:17:24 - 135200/1000000(14%) Passed time:42m40s ETA:4h42m36s pred loss:0.02 episode_length:200.00 episode_reward:-2204.63 critic_loss:15.79 max_critic_abs_err:11.32 policy_loss:199.85 alpha:0.01 alpha_loss:7.6669e-03 q:-200.97 q_target:-200.51 log_pi:12.49 memory:8.84G gpu_mem_ratio:77.2% gpu_mem:8.31G gpu_mem_this:3.53G gpu_util:18%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:18:02 - 136800/1000000(14%) Passed time:43m18s ETA:4h42m45s pred loss:0.03 episode_length:200.00 episode_reward:-2181.95 critic_loss:16.62 max_critic_abs_err:13.63 policy_loss:200.44 alpha:0.01 alpha_loss:7.3761e-03 q:-201.46 q_target:-201.03 log_pi:12.51 memory:8.84G gpu_mem_ratio:90.6% gpu_mem:9.75G gpu_mem_this:4.97G gpu_util:12%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:18:39 - 138400/1000000(14%) Passed time:43m54s ETA:4h42m50s pred loss:0.02 episode_length:200.00 episode_reward:-2193.74 critic_loss:15.42 max_critic_abs_err:13.26 policy_loss:201.09 alpha:0.02 alpha_loss:9.3906e-03 q:-202.14 q_target:-201.61 log_pi:12.38 memory:8.84G gpu_mem_ratio:90.6% gpu_mem:9.75G gpu_mem_this:4.97G gpu_util:25%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:19:16 - 140000/1000000(14%) Passed time:44m32s ETA:4h42m57s pred loss:0.03 episode_length:200.00 episode_reward:-2232.23 critic_loss:15.66 max_critic_abs_err:12.46 policy_loss:201.55 alpha:0.02 alpha_loss:-2.1038e-03 q:-202.60 q_target:-202.13 log_pi:13.13 memory:8.84G gpu_mem_ratio:77.7% gpu_mem:8.36G gpu_mem_this:3.58G gpu_util:7%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:19:53 - 141600/1000000(14%) Passed time:45m8s ETA:4h42m57s pred loss:0.02 episode_length:200.00 episode_reward:-2218.81 critic_loss:15.82 max_critic_abs_err:11.72 policy_loss:201.25 alpha:0.02 alpha_loss:3.6886e-03 q:-202.26 q_target:-201.77 log_pi:12.77 memory:8.85G gpu_mem_ratio:91.5% gpu_mem:9.84G gpu_mem_this:5.06G gpu_util:7%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:20:30 - 143200/1000000(14%) Passed time:45m46s ETA:4h43m3s pred loss:0.02 episode_length:200.00 episode_reward:-2179.09 critic_loss:14.46 max_critic_abs_err:11.74 policy_loss:201.45 alpha:0.02 alpha_loss:-8.3779e-03 q:-202.56 q_target:-202.07 log_pi:13.52 memory:8.85G gpu_mem_ratio:78.1% gpu_mem:8.41G gpu_mem_this:3.63G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:21:07 - 144800/1000000(14%) Passed time:46m22s ETA:4h43m pred loss:0.02 episode_length:200.00 episode_reward:-2175.41 critic_loss:14.64 max_critic_abs_err:11.94 policy_loss:201.87 alpha:0.02 alpha_loss:-1.3621e-03 q:-203.13 q_target:-202.54 log_pi:13.08 memory:8.85G gpu_mem_ratio:79.4% gpu_mem:8.54G gpu_mem_this:3.76G gpu_util:16%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:21:42 - 146400/1000000(15%) Passed time:46m58s ETA:4h42m54s pred loss:0.02 episode_length:200.00 episode_reward:-2166.35 critic_loss:14.03 max_critic_abs_err:12.91 policy_loss:201.59 alpha:0.02 alpha_loss:7.8284e-03 q:-202.67 q_target:-202.20 log_pi:12.52 memory:8.85G gpu_mem_ratio:93.5% gpu_mem:10.07G gpu_mem_this:5.29G gpu_util:15%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:22:16 - 148000/1000000(15%) Passed time:47m32s ETA:4h42m37s pred loss:0.02 episode_length:200.00 episode_reward:-2274.03 critic_loss:14.11 max_critic_abs_err:11.75 policy_loss:202.10 alpha:0.02 alpha_loss:1.7759e-03 q:-203.14 q_target:-202.69 log_pi:12.89 memory:8.86G gpu_mem_ratio:79.9% gpu_mem:8.59G gpu_mem_this:3.82G gpu_util:15%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:22:51 - 149600/1000000(15%) Passed time:48m7s ETA:4h42m24s pred loss:0.03 episode_length:200.00 episode_reward:-2223.80 critic_loss:13.38 max_critic_abs_err:12.11 policy_loss:201.42 alpha:0.02 alpha_loss:-6.1273e-03 q:-202.47 q_target:-202.08 log_pi:13.36 memory:8.86G gpu_mem_ratio:94.4% gpu_mem:10.16G gpu_mem_this:5.38G gpu_util:19%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:23:27 - 151200/1000000(15%) Passed time:48m43s ETA:4h42m15s pred loss:0.02 episode_length:200.00 episode_reward:-2240.76 critic_loss:13.19 max_critic_abs_err:11.19 policy_loss:201.85 alpha:0.02 alpha_loss:6.5954e-03 q:-203.00 q_target:-202.55 log_pi:12.63 memory:8.86G gpu_mem_ratio:82.6% gpu_mem:8.89G gpu_mem_this:3.87G gpu_util:21%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:24:02 - 152800/1000000(15%) Passed time:49m18s ETA:4h42m pred loss:0.02 episode_length:200.00 episode_reward:-2312.53 critic_loss:12.84 max_critic_abs_err:10.38 policy_loss:201.47 alpha:0.02 alpha_loss:-0.01 q:-202.52 q_target:-202.16 log_pi:13.57 memory:8.86G gpu_mem_ratio:82.6% gpu_mem:8.89G gpu_mem_this:3.87G gpu_util:24%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:24:36 - 154400/1000000(15%) Passed time:49m52s ETA:4h41m44s pred loss:0.02 episode_length:200.00 episode_reward:-2247.14 critic_loss:12.60 max_critic_abs_err:11.77 policy_loss:201.67 alpha:0.02 alpha_loss:-4.2056e-04 q:-202.75 q_target:-202.32 log_pi:13.02 memory:8.86G gpu_mem_ratio:97.6% gpu_mem:10.51G gpu_mem_this:5.48G gpu_util:7%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:25:12 - 156000/1000000(16%) Passed time:50m27s ETA:4h41m31s pred loss:0.02 episode_length:200.00 episode_reward:-2217.63 critic_loss:12.90 max_critic_abs_err:11.14 policy_loss:201.26 alpha:0.02 alpha_loss:-2.5847e-03 q:-202.36 q_target:-202.04 log_pi:13.15 memory:8.86G gpu_mem_ratio:83.1% gpu_mem:8.94G gpu_mem_this:3.92G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:25:47 - 157600/1000000(16%) Passed time:51m2s ETA:4h41m17s pred loss:0.02 episode_length:200.00 episode_reward:-2205.88 critic_loss:12.12 max_critic_abs_err:17.06 policy_loss:201.12 alpha:0.02 alpha_loss:-2.0042e-03 q:-202.32 q_target:-201.80 log_pi:13.12 memory:8.86G gpu_mem_ratio:98.5% gpu_mem:10.60G gpu_mem_this:5.57G gpu_util:20%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:26:22 - 159200/1000000(16%) Passed time:51m38s ETA:4h41m7s pred loss:0.02 episode_length:200.00 episode_reward:-2207.91 critic_loss:12.34 max_critic_abs_err:11.04 policy_loss:200.58 alpha:0.02 alpha_loss:-2.5490e-03 q:-201.79 q_target:-201.38 log_pi:13.15 memory:8.86G gpu_mem_ratio:98.5% gpu_mem:10.60G gpu_mem_this:5.57G gpu_util:12%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:26:59 - 160800/1000000(16%) Passed time:52m14s ETA:4h40m58s pred loss:0.03 episode_length:200.00 episode_reward:-2181.95 critic_loss:11.80 max_critic_abs_err:10.60 policy_loss:200.46 alpha:0.02 alpha_loss:7.5865e-03 q:-201.48 q_target:-201.11 log_pi:12.55 memory:8.86G gpu_mem_ratio:83.6% gpu_mem:9.00G gpu_mem_this:3.97G gpu_util:16%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:27:35 - 162400/1000000(16%) Passed time:52m51s ETA:4h40m48s pred loss:0.02 episode_length:200.00 episode_reward:-2203.70 critic_loss:12.03 max_critic_abs_err:12.10 policy_loss:200.73 alpha:0.02 alpha_loss:-3.0158e-03 q:-201.87 q_target:-201.47 log_pi:13.18 memory:8.87G gpu_mem_ratio:99.4% gpu_mem:10.69G gpu_mem_this:5.67G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:28:12 - 164000/1000000(16%) Passed time:53m28s ETA:4h40m43s pred loss:0.02 episode_length:200.00 episode_reward:-2223.59 critic_loss:11.85 max_critic_abs_err:11.64 policy_loss:200.52 alpha:0.02 alpha_loss:4.3255e-03 q:-201.63 q_target:-201.27 log_pi:12.74 memory:8.87G gpu_mem_ratio:84.1% gpu_mem:9.05G gpu_mem_this:4.02G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:28:49 - 165600/1000000(17%) Passed time:54m5s ETA:4h40m39s pred loss:0.02 episode_length:200.00 episode_reward:-2229.68 critic_loss:11.88 max_critic_abs_err:15.44 policy_loss:201.00 alpha:0.02 alpha_loss:1.8594e-03 q:-202.13 q_target:-201.69 log_pi:12.88 memory:8.87G gpu_mem_ratio:84.3% gpu_mem:9.07G gpu_mem_this:4.04G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:29:26 - 167200/1000000(17%) Passed time:54m42s ETA:4h40m28s pred loss:0.02 episode_length:200.00 episode_reward:-2203.55 critic_loss:11.58 max_critic_abs_err:10.93 policy_loss:201.22 alpha:0.01 alpha_loss:-4.5929e-03 q:-202.26 q_target:-201.86 log_pi:13.31 memory:8.87G gpu_mem_ratio:84.3% gpu_mem:9.07G gpu_mem_this:4.04G gpu_util:23%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:30:01 - 168800/1000000(17%) Passed time:55m17s ETA:4h40m12s pred loss:0.04 episode_length:200.00 episode_reward:-2278.88 critic_loss:11.82 max_critic_abs_err:12.74 policy_loss:201.77 alpha:0.01 alpha_loss:8.2843e-04 q:-202.83 q_target:-202.39 log_pi:12.94 memory:8.87G gpu_mem_ratio:84.5% gpu_mem:9.10G gpu_mem_this:4.07G gpu_util:7%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:30:39 - 170400/1000000(17%) Passed time:55m55s ETA:4h40m7s pred loss:0.03 episode_length:200.00 episode_reward:-2266.50 critic_loss:12.58 max_critic_abs_err:13.55 policy_loss:201.08 alpha:0.02 alpha_loss:-4.4560e-03 q:-202.21 q_target:-201.78 log_pi:13.28 memory:8.87G gpu_mem_ratio:83.9% gpu_mem:9.03G gpu_mem_this:4.00G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:31:19 - 172000/1000000(17%) Passed time:56m34s ETA:4h40m12s pred loss:0.02 episode_length:200.00 episode_reward:-2258.83 critic_loss:11.83 max_critic_abs_err:11.97 policy_loss:200.86 alpha:0.02 alpha_loss:1.6257e-03 q:-202.08 q_target:-201.73 log_pi:12.90 memory:8.87G gpu_mem_ratio:84.1% gpu_mem:9.05G gpu_mem_this:4.02G gpu_util:19%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:32:00 - 173600/1000000(17%) Passed time:57m16s ETA:4h40m25s pred loss:0.04 episode_length:200.00 episode_reward:-2200.59 critic_loss:10.51 max_critic_abs_err:11.33 policy_loss:199.81 alpha:0.02 alpha_loss:3.7752e-03 q:-201.16 q_target:-200.73 log_pi:12.79 memory:8.87G gpu_mem_ratio:84.1% gpu_mem:9.05G gpu_mem_this:4.02G gpu_util:12%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:32:39 - 175200/1000000(18%) Passed time:57m55s ETA:4h40m23s pred loss:0.02 episode_length:200.00 episode_reward:-2269.33 critic_loss:11.69 max_critic_abs_err:11.34 policy_loss:199.29 alpha:0.02 alpha_loss:-2.3236e-03 q:-200.48 q_target:-200.05 log_pi:13.14 memory:8.87G gpu_mem_ratio:84.4% gpu_mem:9.08G gpu_mem_this:4.05G gpu_util:15%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:33:16 - 176800/1000000(18%) Passed time:58m32s ETA:4h40m14s pred loss:0.02 episode_length:200.00 episode_reward:-2339.37 critic_loss:11.38 max_critic_abs_err:10.87 policy_loss:198.08 alpha:0.02 alpha_loss:1.0747e-03 q:-199.69 q_target:-199.29 log_pi:12.94 memory:8.87G gpu_mem_ratio:84.6% gpu_mem:9.10G gpu_mem_this:4.07G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:33:54 - 178400/1000000(18%) Passed time:59m10s ETA:4h40m9s pred loss:0.03 episode_length:200.00 episode_reward:-2296.58 critic_loss:10.45 max_critic_abs_err:11.02 policy_loss:196.71 alpha:0.02 alpha_loss:-4.1487e-03 q:-198.23 q_target:-197.85 log_pi:13.21 memory:8.87G gpu_mem_ratio:84.8% gpu_mem:9.12G gpu_mem_this:4.10G gpu_util:7%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:34:33 - 180000/1000000(18%) Passed time:59m49s ETA:4h40m4s pred loss:0.01 episode_length:200.00 episode_reward:-2263.06 critic_loss:10.29 max_critic_abs_err:11.21 policy_loss:195.33 alpha:0.02 alpha_loss:1.6383e-03 q:-196.79 q_target:-196.47 log_pi:12.92 memory:8.88G gpu_mem_ratio:85.0% gpu_mem:9.15G gpu_mem_this:4.12G gpu_util:24%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:35:12 - 181600/1000000(18%) Passed time:1h28s ETA:4h40m3s pred loss:0.01 episode_length:200.00 episode_reward:-2275.75 critic_loss:10.25 max_critic_abs_err:11.66 policy_loss:194.42 alpha:0.02 alpha_loss:0.01 q:-195.84 q_target:-195.46 log_pi:12.40 memory:8.88G gpu_mem_ratio:85.0% gpu_mem:9.15G gpu_mem_this:4.12G gpu_util:22%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:35:52 - 183200/1000000(18%) Passed time:1h1m8s ETA:4h40m2s pred loss:0.02 episode_length:200.00 episode_reward:-2273.10 critic_loss:10.27 max_critic_abs_err:9.38 policy_loss:193.42 alpha:0.02 alpha_loss:8.2105e-03 q:-195.02 q_target:-194.65 log_pi:12.60 memory:8.88G gpu_mem_ratio:85.2% gpu_mem:9.17G gpu_mem_this:4.14G gpu_util:13%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:36:30 - 184800/1000000(18%) Passed time:1h1m45s ETA:4h39m51s pred loss:0.02 episode_length:197.38 episode_reward:-2274.85 critic_loss:9.74 max_critic_abs_err:11.33 policy_loss:192.96 alpha:0.02 alpha_loss:7.5837e-03 q:-194.41 q_target:-194.03 log_pi:12.62 memory:8.88G gpu_mem_ratio:85.4% gpu_mem:9.19G gpu_mem_this:4.17G gpu_util:13%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:37:10 - 186400/1000000(19%) Passed time:1h2m25s ETA:4h39m50s pred loss:0.02 episode_length:200.00 episode_reward:-2223.61 critic_loss:9.42 max_critic_abs_err:10.68 policy_loss:193.12 alpha:0.02 alpha_loss:-2.4183e-03 q:-194.55 q_target:-194.16 log_pi:13.13 memory:8.88G gpu_mem_ratio:85.7% gpu_mem:9.22G gpu_mem_this:4.19G gpu_util:8%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:37:50 - 188000/1000000(19%) Passed time:1h3m6s ETA:4h39m53s pred loss:0.02 episode_length:200.00 episode_reward:-2131.45 critic_loss:10.11 max_critic_abs_err:11.26 policy_loss:193.92 alpha:0.02 alpha_loss:9.5975e-03 q:-195.03 q_target:-194.68 log_pi:12.44 memory:8.88G gpu_mem_ratio:85.9% gpu_mem:9.24G gpu_mem_this:4.21G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:38:31 - 189600/1000000(19%) Passed time:1h3m47s ETA:4h39m55s pred loss:0.02 episode_length:200.00 episode_reward:-2075.50 critic_loss:10.14 max_critic_abs_err:13.41 policy_loss:195.07 alpha:0.02 alpha_loss:4.9187e-03 q:-196.18 q_target:-195.81 log_pi:12.69 memory:8.88G gpu_mem_ratio:85.9% gpu_mem:9.24G gpu_mem_this:4.21G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:39:12 - 191200/1000000(19%) Passed time:1h4m28s ETA:4h39m54s pred loss:0.02 episode_length:200.00 episode_reward:-2079.48 critic_loss:10.22 max_critic_abs_err:10.61 policy_loss:195.66 alpha:0.02 alpha_loss:5.9799e-03 q:-196.83 q_target:-196.45 log_pi:12.62 memory:8.88G gpu_mem_ratio:86.1% gpu_mem:9.27G gpu_mem_this:4.24G gpu_util:8%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:39:54 - 192800/1000000(19%) Passed time:1h5m10s ETA:4h40m pred loss:0.03 episode_length:200.00 episode_reward:-2088.32 critic_loss:11.23 max_critic_abs_err:11.38 policy_loss:196.64 alpha:0.02 alpha_loss:-0.01 q:-197.77 q_target:-197.32 log_pi:13.91 memory:8.89G gpu_mem_ratio:86.3% gpu_mem:9.29G gpu_mem_this:4.26G gpu_util:7%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:40:34 - 194400/1000000(19%) Passed time:1h5m50s ETA:4h39m58s pred loss:0.02 episode_length:200.00 episode_reward:-2112.58 critic_loss:10.21 max_critic_abs_err:10.43 policy_loss:197.20 alpha:0.02 alpha_loss:0.01 q:-198.16 q_target:-197.84 log_pi:12.30 memory:8.89G gpu_mem_ratio:88.2% gpu_mem:9.50G gpu_mem_this:4.47G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:41:16 - 196000/1000000(20%) Passed time:1h6m32s ETA:4h40m2s pred loss:0.03 episode_length:200.00 episode_reward:-2092.89 critic_loss:10.50 max_critic_abs_err:12.76 policy_loss:198.16 alpha:0.01 alpha_loss:3.1121e-03 q:-199.17 q_target:-198.82 log_pi:12.79 memory:8.89G gpu_mem_ratio:88.2% gpu_mem:9.50G gpu_mem_this:4.47G gpu_util:7%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:41:58 - 197600/1000000(20%) Passed time:1h7m14s ETA:4h40m4s pred loss:0.02 episode_length:200.00 episode_reward:-2089.88 critic_loss:10.15 max_critic_abs_err:10.89 policy_loss:198.48 alpha:0.02 alpha_loss:1.7319e-03 q:-199.46 q_target:-199.20 log_pi:12.89 memory:8.89G gpu_mem_ratio:88.5% gpu_mem:9.52G gpu_mem_this:4.50G gpu_util:21%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:42:39 - 199200/1000000(20%) Passed time:1h7m54s ETA:4h40m pred loss:0.02 episode_length:200.00 episode_reward:-2108.74 critic_loss:10.78 max_critic_abs_err:13.12 policy_loss:199.97 alpha:0.02 alpha_loss:-4.9352e-04 q:-200.87 q_target:-200.51 log_pi:13.03 memory:8.89G gpu_mem_ratio:88.7% gpu_mem:9.55G gpu_mem_this:4.52G gpu_util:18%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:43:20 - 200800/1000000(20%) Passed time:1h8m36s ETA:4h39m59s pred loss:0.02 episode_length:200.00 episode_reward:-2093.39 critic_loss:10.48 max_critic_abs_err:11.31 policy_loss:199.86 alpha:0.01 alpha_loss:-1.3850e-03 q:-200.87 q_target:-200.45 log_pi:13.10 memory:8.89G gpu_mem_ratio:89.0% gpu_mem:9.57G gpu_mem_this:4.55G gpu_util:8%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:43:20 - Save model at step: 200800.The model will be saved at ./work_dirs/OpenCabinetDrawer_1000_link_0-v0/MBPO/models/model_200000.ckpt
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:43:20 - Begin to evaluate at step: 200800. The evaluation info will be saved at eval_200000
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:44:33 - Merge trajectories to ./work_dirs/OpenCabinetDrawer_1000_link_0-v0/MBPO/eval_200000/trajectory.h5
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:44:33 - Merge videos to ./work_dirs/OpenCabinetDrawer_1000_link_0-v0/MBPO/eval_200000/videos
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:44:33 - Num of trails: 10.00, Length: 200.00+/-0.00, Reward: -2134.96+/-63.09, Success or Early Stop Rate: 0.00
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:45:15 - 202400/1000000(20%) Passed time:1h10m31s ETA:4h44m55s pred loss:0.04 episode_length:200.00 episode_reward:-2105.19 critic_loss:11.53 max_critic_abs_err:12.02 policy_loss:200.90 alpha:0.01 alpha_loss:2.6506e-03 q:-201.89 q_target:-201.47 log_pi:12.80 memory:8.92G gpu_mem_ratio:85.5% gpu_mem:9.20G gpu_mem_this:4.18G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:45:58 - 204000/1000000(20%) Passed time:1h11m14s ETA:4h44m58s pred loss:0.02 episode_length:200.00 episode_reward:-2105.20 critic_loss:11.00 max_critic_abs_err:12.67 policy_loss:201.96 alpha:0.01 alpha_loss:2.4935e-03 q:-202.76 q_target:-202.43 log_pi:12.80 memory:8.93G gpu_mem_ratio:87.8% gpu_mem:9.45G gpu_mem_this:4.18G gpu_util:11%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:46:38 - 205600/1000000(21%) Passed time:1h11m54s ETA:4h44m46s pred loss:0.02 episode_length:200.00 episode_reward:-2166.07 critic_loss:9.34 max_critic_abs_err:10.07 policy_loss:202.29 alpha:0.01 alpha_loss:-2.0806e-03 q:-203.15 q_target:-202.90 log_pi:13.16 memory:8.93G gpu_mem_ratio:88.8% gpu_mem:9.56G gpu_mem_this:4.28G gpu_util:7%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:47:21 - 207200/1000000(21%) Passed time:1h12m37s ETA:4h44m47s pred loss:0.02 episode_length:200.00 episode_reward:-2130.69 critic_loss:9.53 max_critic_abs_err:8.62 policy_loss:203.45 alpha:0.01 alpha_loss:-2.4400e-03 q:-204.31 q_target:-203.98 log_pi:13.18 memory:8.93G gpu_mem_ratio:89.1% gpu_mem:9.58G gpu_mem_this:4.31G gpu_util:8%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:48:03 - 208800/1000000(21%) Passed time:1h13m19s ETA:4h44m43s pred loss:0.03 episode_length:198.12 episode_reward:-2116.75 critic_loss:9.61 max_critic_abs_err:9.17 policy_loss:204.00 alpha:0.01 alpha_loss:9.5837e-04 q:-204.84 q_target:-204.50 log_pi:12.93 memory:8.93G gpu_mem_ratio:89.3% gpu_mem:9.61G gpu_mem_this:4.33G gpu_util:21%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:48:45 - 210400/1000000(21%) Passed time:1h14m ETA:4h44m35s pred loss:0.02 episode_length:195.75 episode_reward:-2129.71 critic_loss:9.13 max_critic_abs_err:10.23 policy_loss:205.00 alpha:0.01 alpha_loss:-2.7524e-03 q:-205.68 q_target:-205.41 log_pi:13.22 memory:8.93G gpu_mem_ratio:89.3% gpu_mem:9.61G gpu_mem_this:4.33G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:49:27 - 212000/1000000(21%) Passed time:1h14m42s ETA:4h44m29s pred loss:0.02 episode_length:196.00 episode_reward:-2091.95 critic_loss:9.07 max_critic_abs_err:9.79 policy_loss:205.32 alpha:0.01 alpha_loss:3.9733e-03 q:-206.15 q_target:-205.82 log_pi:12.67 memory:8.93G gpu_mem_ratio:89.5% gpu_mem:9.64G gpu_mem_this:4.36G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:50:07 - 213600/1000000(21%) Passed time:1h15m23s ETA:4h44m16s pred loss:0.02 episode_length:200.00 episode_reward:-2208.46 critic_loss:9.31 max_critic_abs_err:8.70 policy_loss:206.04 alpha:0.01 alpha_loss:-2.0157e-03 q:-206.81 q_target:-206.47 log_pi:13.17 memory:8.93G gpu_mem_ratio:89.8% gpu_mem:9.66G gpu_mem_this:4.38G gpu_util:29%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:50:47 - 215200/1000000(22%) Passed time:1h16m3s ETA:4h44m3s pred loss:0.02 episode_length:200.00 episode_reward:-2222.00 critic_loss:9.74 max_critic_abs_err:14.60 policy_loss:206.43 alpha:0.01 alpha_loss:-1.2415e-03 q:-207.22 q_target:-206.86 log_pi:13.11 memory:8.93G gpu_mem_ratio:90.0% gpu_mem:9.69G gpu_mem_this:4.41G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:51:26 - 216800/1000000(22%) Passed time:1h16m42s ETA:4h43m46s pred loss:0.02 episode_length:200.00 episode_reward:-2247.64 critic_loss:9.00 max_critic_abs_err:8.49 policy_loss:206.87 alpha:0.01 alpha_loss:-4.4822e-04 q:-207.64 q_target:-207.31 log_pi:13.04 memory:8.93G gpu_mem_ratio:90.2% gpu_mem:9.71G gpu_mem_this:4.43G gpu_util:23%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:52:08 - 218400/1000000(22%) Passed time:1h17m24s ETA:4h43m38s pred loss:0.02 episode_length:200.00 episode_reward:-2120.16 critic_loss:8.77 max_critic_abs_err:9.57 policy_loss:206.66 alpha:0.01 alpha_loss:9.8841e-04 q:-207.44 q_target:-207.16 log_pi:12.92 memory:8.93G gpu_mem_ratio:90.2% gpu_mem:9.71G gpu_mem_this:4.43G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:52:49 - 220000/1000000(22%) Passed time:1h18m5s ETA:4h43m27s pred loss:0.01 episode_length:194.12 episode_reward:-2113.46 critic_loss:9.05 max_critic_abs_err:14.80 policy_loss:207.10 alpha:0.01 alpha_loss:-2.3274e-03 q:-207.79 q_target:-207.50 log_pi:13.18 memory:8.93G gpu_mem_ratio:90.5% gpu_mem:9.73G gpu_mem_this:4.46G gpu_util:17%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:53:30 - 221600/1000000(22%) Passed time:1h18m46s ETA:4h43m13s pred loss:0.03 episode_length:200.00 episode_reward:-2203.73 critic_loss:9.38 max_critic_abs_err:8.43 policy_loss:207.42 alpha:0.01 alpha_loss:1.9895e-03 q:-208.14 q_target:-207.85 log_pi:12.84 memory:8.94G gpu_mem_ratio:90.7% gpu_mem:9.76G gpu_mem_this:4.48G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:54:12 - 223200/1000000(22%) Passed time:1h19m28s ETA:4h43m4s pred loss:0.01 episode_length:197.50 episode_reward:-2136.34 critic_loss:8.85 max_critic_abs_err:10.14 policy_loss:208.18 alpha:0.01 alpha_loss:1.1648e-03 q:-208.91 q_target:-208.57 log_pi:12.90 memory:8.94G gpu_mem_ratio:90.9% gpu_mem:9.78G gpu_mem_this:4.50G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:54:54 - 224800/1000000(22%) Passed time:1h20m9s ETA:4h42m53s pred loss:0.02 episode_length:200.00 episode_reward:-2175.14 critic_loss:8.69 max_critic_abs_err:7.73 policy_loss:208.19 alpha:0.01 alpha_loss:-2.2917e-03 q:-208.92 q_target:-208.58 log_pi:13.20 memory:8.94G gpu_mem_ratio:93.2% gpu_mem:10.03G gpu_mem_this:4.50G gpu_util:20%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:55:37 - 226400/1000000(23%) Passed time:1h20m53s ETA:4h42m49s pred loss:0.04 episode_length:198.12 episode_reward:-2100.56 critic_loss:9.00 max_critic_abs_err:9.69 policy_loss:208.29 alpha:0.01 alpha_loss:-5.6355e-03 q:-209.10 q_target:-208.73 log_pi:13.47 memory:8.94G gpu_mem_ratio:93.5% gpu_mem:10.06G gpu_mem_this:4.54G gpu_util:28%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:56:18 - 228000/1000000(23%) Passed time:1h21m34s ETA:4h42m36s pred loss:0.02 episode_length:195.75 episode_reward:-2234.93 critic_loss:8.96 max_critic_abs_err:8.25 policy_loss:208.67 alpha:0.01 alpha_loss:-7.5137e-03 q:-209.34 q_target:-209.09 log_pi:13.59 memory:8.94G gpu_mem_ratio:93.7% gpu_mem:10.09G gpu_mem_this:4.56G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:57:01 - 229600/1000000(23%) Passed time:1h22m17s ETA:4h42m27s pred loss:0.02 episode_length:200.00 episode_reward:-2205.13 critic_loss:9.13 max_critic_abs_err:10.82 policy_loss:208.22 alpha:0.01 alpha_loss:2.4971e-03 q:-209.02 q_target:-208.69 log_pi:12.81 memory:8.94G gpu_mem_ratio:94.0% gpu_mem:10.11G gpu_mem_this:4.59G gpu_util:16%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:57:42 - 231200/1000000(23%) Passed time:1h22m58s ETA:4h42m14s pred loss:0.02 episode_length:200.00 episode_reward:-2213.47 critic_loss:8.74 max_critic_abs_err:14.74 policy_loss:207.78 alpha:0.01 alpha_loss:2.0957e-03 q:-208.62 q_target:-208.28 log_pi:12.85 memory:8.94G gpu_mem_ratio:94.2% gpu_mem:10.14G gpu_mem_this:4.61G gpu_util:24%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:58:24 - 232800/1000000(23%) Passed time:1h23m40s ETA:4h42m pred loss:0.02 episode_length:200.00 episode_reward:-2272.72 critic_loss:9.36 max_critic_abs_err:17.02 policy_loss:207.95 alpha:0.01 alpha_loss:2.4462e-03 q:-208.73 q_target:-208.39 log_pi:12.81 memory:8.94G gpu_mem_ratio:94.2% gpu_mem:10.14G gpu_mem_this:4.61G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:59:06 - 234400/1000000(23%) Passed time:1h24m22s ETA:4h41m49s pred loss:0.02 episode_length:200.00 episode_reward:-2216.82 critic_loss:8.44 max_critic_abs_err:8.22 policy_loss:207.71 alpha:0.01 alpha_loss:4.9318e-03 q:-208.38 q_target:-208.03 log_pi:12.59 memory:8.95G gpu_mem_ratio:94.5% gpu_mem:10.16G gpu_mem_this:4.64G gpu_util:23%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 21:59:50 - 236000/1000000(24%) Passed time:1h25m6s ETA:4h41m43s pred loss:0.02 episode_length:200.00 episode_reward:-2149.51 critic_loss:7.66 max_critic_abs_err:11.17 policy_loss:207.54 alpha:0.01 alpha_loss:1.5883e-03 q:-208.21 q_target:-207.85 log_pi:12.87 memory:8.95G gpu_mem_ratio:94.7% gpu_mem:10.19G gpu_mem_this:4.66G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 22:00:34 - 237600/1000000(24%) Passed time:1h25m50s ETA:4h41m37s pred loss:0.04 episode_length:200.00 episode_reward:-2117.64 critic_loss:8.09 max_critic_abs_err:8.51 policy_loss:207.83 alpha:0.01 alpha_loss:1.8130e-03 q:-208.33 q_target:-208.10 log_pi:12.84 memory:8.95G gpu_mem_ratio:94.9% gpu_mem:10.22G gpu_mem_this:4.69G gpu_util:15%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 22:01:18 - 239200/1000000(24%) Passed time:1h26m34s ETA:4h41m29s pred loss:0.02 episode_length:200.00 episode_reward:-2128.26 critic_loss:8.36 max_critic_abs_err:14.32 policy_loss:208.16 alpha:0.01 alpha_loss:4.9590e-03 q:-208.75 q_target:-208.49 log_pi:12.54 memory:8.95G gpu_mem_ratio:95.2% gpu_mem:10.24G gpu_mem_this:4.71G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 22:02:00 - 240800/1000000(24%) Passed time:1h27m16s ETA:4h41m16s pred loss:0.02 episode_length:200.00 episode_reward:-2134.02 critic_loss:8.23 max_critic_abs_err:17.30 policy_loss:208.10 alpha:0.01 alpha_loss:-5.6614e-03 q:-208.67 q_target:-208.40 log_pi:13.51 memory:8.95G gpu_mem_ratio:95.2% gpu_mem:10.24G gpu_mem_this:4.71G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 22:02:41 - 242400/1000000(24%) Passed time:1h27m57s ETA:4h40m58s pred loss:0.04 episode_length:200.00 episode_reward:-2151.54 critic_loss:8.22 max_critic_abs_err:8.41 policy_loss:207.95 alpha:0.01 alpha_loss:-0.01 q:-208.64 q_target:-208.39 log_pi:14.03 memory:8.95G gpu_mem_ratio:96.9% gpu_mem:10.43G gpu_mem_this:4.90G gpu_util:11%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 22:03:23 - 244000/1000000(24%) Passed time:1h28m39s ETA:4h40m44s pred loss:0.02 episode_length:200.00 episode_reward:-2200.68 critic_loss:8.26 max_critic_abs_err:9.47 policy_loss:207.17 alpha:0.01 alpha_loss:-0.01 q:-208.00 q_target:-207.69 log_pi:13.73 memory:8.95G gpu_mem_ratio:97.1% gpu_mem:10.45G gpu_mem_this:4.93G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 22:04:06 - 245600/1000000(25%) Passed time:1h29m22s ETA:4h40m32s pred loss:0.02 episode_length:200.00 episode_reward:-2233.84 critic_loss:8.37 max_critic_abs_err:13.26 policy_loss:206.98 alpha:0.01 alpha_loss:-1.3407e-04 q:-207.69 q_target:-207.43 log_pi:13.01 memory:8.95G gpu_mem_ratio:97.4% gpu_mem:10.48G gpu_mem_this:4.95G gpu_util:16%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 22:04:47 - 247200/1000000(25%) Passed time:1h30m3s ETA:4h40m15s pred loss:0.02 episode_length:200.00 episode_reward:-2185.63 critic_loss:8.49 max_critic_abs_err:13.39 policy_loss:206.41 alpha:0.01 alpha_loss:-2.3639e-03 q:-207.03 q_target:-206.69 log_pi:13.18 memory:8.95G gpu_mem_ratio:95.1% gpu_mem:10.23G gpu_mem_this:4.95G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 22:05:30 - 248800/1000000(25%) Passed time:1h30m45s ETA:4h40m pred loss:0.02 episode_length:200.00 episode_reward:-2142.77 critic_loss:8.43 max_critic_abs_err:9.70 policy_loss:206.54 alpha:0.01 alpha_loss:-6.6363e-04 q:-207.26 q_target:-206.93 log_pi:13.05 memory:8.95G gpu_mem_ratio:97.6% gpu_mem:10.50G gpu_mem_this:4.98G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 22:06:13 - 250400/1000000(25%) Passed time:1h31m29s ETA:4h39m47s pred loss:0.01 episode_length:200.00 episode_reward:-2108.16 critic_loss:8.04 max_critic_abs_err:8.93 policy_loss:206.53 alpha:0.01 alpha_loss:2.3273e-03 q:-207.20 q_target:-206.87 log_pi:12.82 memory:8.95G gpu_mem_ratio:97.8% gpu_mem:10.53G gpu_mem_this:5.00G gpu_util:10%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 22:06:57 - 252000/1000000(25%) Passed time:1h32m13s ETA:4h39m38s pred loss:0.02 episode_length:200.00 episode_reward:-2105.41 critic_loss:8.36 max_critic_abs_err:11.62 policy_loss:206.21 alpha:0.01 alpha_loss:1.7790e-03 q:-206.78 q_target:-206.49 log_pi:12.86 memory:8.96G gpu_mem_ratio:98.1% gpu_mem:10.56G gpu_mem_this:5.03G gpu_util:9%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 22:07:42 - 253600/1000000(25%) Passed time:1h32m58s ETA:4h39m30s pred loss:0.01 episode_length:200.00 episode_reward:-2040.93 critic_loss:8.23 max_critic_abs_err:7.97 policy_loss:206.18 alpha:0.01 alpha_loss:-5.6737e-03 q:-206.82 q_target:-206.52 log_pi:13.47 memory:8.96G gpu_mem_ratio:98.3% gpu_mem:10.58G gpu_mem_this:5.05G gpu_util:8%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 22:08:26 - 255200/1000000(26%) Passed time:1h33m42s ETA:4h39m20s pred loss:0.02 episode_length:200.00 episode_reward:-2062.82 critic_loss:7.42 max_critic_abs_err:8.06 policy_loss:206.34 alpha:0.01 alpha_loss:-4.8171e-03 q:-206.92 q_target:-206.63 log_pi:13.40 memory:8.96G gpu_mem_ratio:98.3% gpu_mem:10.58G gpu_mem_this:5.05G gpu_util:8%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 22:09:11 - 256800/1000000(26%) Passed time:1h34m27s ETA:4h39m10s pred loss:0.03 episode_length:199.12 episode_reward:-2084.87 critic_loss:7.60 max_critic_abs_err:9.60 policy_loss:206.54 alpha:0.01 alpha_loss:-5.9906e-03 q:-207.12 q_target:-206.83 log_pi:13.50 memory:8.96G gpu_mem_ratio:98.6% gpu_mem:10.61G gpu_mem_this:5.08G gpu_util:12%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 22:09:56 - 258400/1000000(26%) Passed time:1h35m12s ETA:4h39m2s pred loss:0.02 episode_length:200.00 episode_reward:-2134.32 critic_loss:7.38 max_critic_abs_err:8.71 policy_loss:206.84 alpha:0.01 alpha_loss:9.6514e-04 q:-207.41 q_target:-207.09 log_pi:12.92 memory:8.96G gpu_mem_ratio:98.8% gpu_mem:10.63G gpu_mem_this:5.10G gpu_util:8%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 22:10:42 - 260000/1000000(26%) Passed time:1h35m58s ETA:4h38m54s pred loss:0.02 episode_length:200.00 episode_reward:-2144.04 critic_loss:7.30 max_critic_abs_err:10.24 policy_loss:206.65 alpha:0.01 alpha_loss:-2.1687e-03 q:-207.25 q_target:-206.94 log_pi:13.17 memory:8.96G gpu_mem_ratio:99.6% gpu_mem:10.72G gpu_mem_this:5.13G gpu_util:16%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 22:11:28 - 261600/1000000(26%) Passed time:1h36m44s ETA:4h38m48s pred loss:0.02 episode_length:200.00 episode_reward:-2122.54 critic_loss:7.33 max_critic_abs_err:8.76 policy_loss:206.99 alpha:0.01 alpha_loss:4.0105e-04 q:-207.54 q_target:-207.27 log_pi:12.96 memory:8.96G gpu_mem_ratio:99.9% gpu_mem:10.75G gpu_mem_this:5.13G gpu_util:8%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 22:12:13 - 263200/1000000(26%) Passed time:1h37m28s ETA:4h38m36s pred loss:0.02 episode_length:200.00 episode_reward:-2107.70 critic_loss:7.25 max_critic_abs_err:8.34 policy_loss:207.33 alpha:0.01 alpha_loss:-3.1097e-04 q:-207.84 q_target:-207.55 log_pi:13.03 memory:8.97G gpu_mem_ratio:98.0% gpu_mem:10.55G gpu_mem_this:4.93G gpu_util:8%
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-03-06 22:12:57 - 264800/1000000(26%) Passed time:1h38m13s ETA:4h38m24s pred loss:0.02 episode_length:200.00 episode_reward:-2105.43 critic_loss:8.26 max_critic_abs_err:17.34 policy_loss:207.24 alpha:0.01 alpha_loss:-2.9022e-03 q:-207.88 q_target:-207.60 log_pi:13.24 memory:8.97G gpu_mem_ratio:100.0% gpu_mem:10.76G gpu_mem_this:4.95G gpu_util:8%
