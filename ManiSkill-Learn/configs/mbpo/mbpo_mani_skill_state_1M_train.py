@@ -1,0 +1,1 @@
+_base_ = ['../_base_/mbpo/mbpo_mani_skill_mlp.py']
