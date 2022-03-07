@@ -66,7 +66,7 @@ class MBPO(BaseAgent):
     def train_model(self, replay_env):
         # print(self.model)
         for i in range(100):
-            sampled_batch = replay_env.get_all()
+            sampled_batch = replay_env.sample(self.batch_size)
             sampled_batch = to_torch(
                 sampled_batch, dtype='float32', device=self.device, non_blocking=True)
             for key in sampled_batch:
