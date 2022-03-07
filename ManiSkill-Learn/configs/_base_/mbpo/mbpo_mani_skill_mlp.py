@@ -80,7 +80,7 @@ replay_cfg = dict(
 
 replay_model_cfg = dict(
     type='ReplayMemory',
-    capacity=1000000,
+    capacity=100000,
 )
 
 train_mfrl_cfg = dict(
