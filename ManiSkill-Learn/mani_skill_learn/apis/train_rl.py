@@ -16,7 +16,7 @@ from mani_skill_learn.utils.meta import get_logger, get_total_memory, td_format
 from mani_skill_learn.utils.torch import TensorboardLogger, save_checkpoint
 from mani_skill_learn.utils.math import split_num
 from torch.utils.tensorboard import SummaryWriter
-writer = SummaryWriter("logs")
+#writer = SummaryWriter("logs")
 
 class EpisodicStatistics:
     def __init__(self, num_procs):
@@ -184,7 +184,7 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_po
         if(is_mbrl):
             loss_obs,loss_rew=agent.train_model(replay_env)
             print(f"iter {iteration_id}  loss is {loss_obs.item()}+{loss_rew.item()}")
-            writer.add_scalar("pred_loss",loss_obs+loss_rew,iteration_id)
+            #writer.add_scalar("pred_loss",loss_obs+loss_rew,iteration_id)
             print_dict['pred loss']=float(loss_obs+loss_rew)
 
         if n_steps > 0:
