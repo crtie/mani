@@ -84,5 +84,5 @@ env_cfg = dict(
     reward_type='dense',
     env_name='OpenCabinetDrawer_1000_link_0-v0')
 replay_cfg = dict(type='ReplayMemory', capacity=1000000)
-replay_model_cfg = dict(type='ReplayMemory', capacity=100000)
+replay_model_cfg = dict(type='ReplayMemory', capacity=300000)
 work_dir = './work_dirs/OpenCabinetDrawer_1000_link_0-v0/MBPO'
