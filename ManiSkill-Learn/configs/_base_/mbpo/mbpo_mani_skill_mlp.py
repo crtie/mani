@@ -75,7 +75,7 @@ agent = dict(
 
 replay_cfg = dict(
     type='ReplayMemory',
-    capacity=1000000,
+    capacity=300000,
 )
 
 replay_model_cfg = dict(
