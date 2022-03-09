@@ -75,12 +75,12 @@ agent = dict(
 
 replay_cfg = dict(
     type='ReplayMemory',
-    capacity=300000,
+    capacity=600000,
 )
 
 replay_model_cfg = dict(
     type='ReplayMemory',
-    capacity=300000,
+    capacity=600000,
 )
 
 train_mfrl_cfg = dict(
