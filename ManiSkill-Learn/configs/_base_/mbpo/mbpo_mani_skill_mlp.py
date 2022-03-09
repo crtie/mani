@@ -54,7 +54,7 @@ agent = dict(
     #! 照着其他MLP的样子写一个model
     model_cfg=dict(
         type='Ensemble_model',
-        num_heads=3,
+        num_heads=7,
         nn_cfg=dict(
             type='LinearMLP',
             norm_cfg=None,
@@ -75,12 +75,12 @@ agent = dict(
 
 replay_cfg = dict(
     type='ReplayMemory',
-    capacity=600000,
+    capacity=500000,
 )
 
 replay_model_cfg = dict(
     type='ReplayMemory',
-    capacity=600000,
+    capacity=500000,
 )
 
 train_mfrl_cfg = dict(

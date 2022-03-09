@@ -33,7 +33,7 @@ agent = dict(
         optim_cfg=dict(type='Adam', lr=0.0003)),
     model_cfg=dict(
         type='Ensemble_model',
-        num_heads=3,
+        num_heads=7,
         nn_cfg=dict(
             type='LinearMLP',
             norm_cfg=None,
@@ -83,6 +83,6 @@ env_cfg = dict(
     unwrapped=False,
     reward_type='dense',
     env_name='OpenCabinetDrawer_1000_link_0-v0')
-replay_cfg = dict(type='ReplayMemory', capacity=600000)
-replay_model_cfg = dict(type='ReplayMemory', capacity=600000)
+replay_cfg = dict(type='ReplayMemory', capacity=500000)
+replay_model_cfg = dict(type='ReplayMemory', capacity=500000)
 work_dir = './work_dirs/OpenCabinetDrawer_1000_link_0-v0/MBPO'
