@@ -72,19 +72,15 @@ class MBPO(BaseAgent):
             for key in sampled_batch:
                 if not isinstance(sampled_batch[key], dict) and sampled_batch[key].ndim == 1:
                     sampled_batch[key] = sampled_batch[key][..., None]
-            pred_next_obs, pred_reward = self.model(
-                sampled_batch['obs'], sampled_batch['actions'])            
-            #print(pred_next_obs.shape, pred_reward.shape)
-            #print(sampled_batch['next_obs'].shape,sampled_batch['rewards'].shape)
-            loss1 = F.mse_loss(pred_next_obs, sampled_batch['next_obs'])
-            loss2 = F.mse_loss(pred_reward, sampled_batch['rewards'])
-            prediction_loss = loss1+loss2
-            # print(prediction_loss)
+            mean = self.model(
+                  sampled_batch['obs'],sampled_batch['actions'])
+            labels=torch.cat([sampled_batch['rewards'] , sampled_batch['next_obs']-sampled_batch['obs']],dim=-1)
 
+            mse_loss = F.mse_loss(mean,labels)
             self.model_optim.zero_grad()
-            prediction_loss.backward()
+            mse_loss.backward()
             self.model_optim.step()
-        return loss1, loss2
+        return mse_loss
 
     def model_rollout(self, replay_env, replay_model):
           # ! 每次造4倍于环境步的model数据
@@ -98,12 +94,26 @@ class MBPO(BaseAgent):
         with torch.no_grad():
             next_action = self.policy(
                 sampled_batch['next_obs'], mode='sample')
-            pred_obs, pred_reward = self.model(
+            ensemble_model_means = self.model(
                 sampled_batch['next_obs'], next_action)
+
+            ensemble_model_means[:, :, 1:] += sampled_batch['next_obs']
+            #ensemble_model_stds = torch.sqrt(ensemble_model_vars)
+            #ensemble_model_means + torch.randn(size=ensemble_model_means.shape).cuda() * ensemble_model_stds
+            num_models, batch_size, _ = ensemble_model_means.shape
+            model_idxes = torch.randint(num_models, (batch_size,))
+            batch_idxes = torch.arange(0, batch_size)
+            #print(model_idxes)
+            samples = ensemble_model_means[model_idxes, batch_idxes]
+            #print(samples.shape,samples)
+            
+            pred_reward, pred_obs = samples[:, :1], samples[:, 1:]
+            #print(pred_reward.shape,pred_obs.shape)
             rollout = dict()
             #! trajectories are dict of keys {obs,actions,next_obs,rewards,dones,episode_dones}
             rollout['obs'] = sampled_batch['next_obs'].cpu().numpy()
             rollout['actions'] = next_action.cpu().numpy()
+
             rollout['next_obs'] = pred_obs.cpu().numpy()
             rollout['rewards'] = pred_reward.cpu().numpy()
             rollout['dones'] = torch.zeros_like(

@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import torch.nn.functional as F
 from mani_skill_learn.utils.torch import ExtendedModule
 from ..builder import MODELNETWORKS, build_backbone
 from ..utils import replace_placeholder_with_args, get_kwargs_from_shape, combine_obs_with_action
@@ -13,6 +13,7 @@ class Ensemble_model(ExtendedModule):
         self.values = nn.ModuleList()
         replaceable_kwargs = get_kwargs_from_shape(obs_shape, action_shape)
         nn_cfg = replace_placeholder_with_args(nn_cfg, **replaceable_kwargs)
+        self.output_dim=obs_shape+1   #! state_size+reward size
         for i in range(num_heads):
             self.values.append(build_backbone(nn_cfg))
 
@@ -25,8 +26,8 @@ class Ensemble_model(ExtendedModule):
     def forward(self, state, action=None):
         inputs = combine_obs_with_action(state, action)
         ret = [value(inputs) for value in self.values]
-        num_heads=len(ret)
-        pred=sum(ret)/num_heads
-        #print(pred.shape)
-        #! 返回next state和reward
-        return pred.split([pred.shape[1]-1,1],dim=1)
+        ret=torch.stack(ret,0)
+        #! ret of the shape ensemble*batch*(state size+rew size)
+        #! 前state+rew 维
+        #print(mean.shape,logvar.shape)
+        return ret
