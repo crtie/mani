@@ -74,7 +74,10 @@ class MBPO(BaseAgent):
                     sampled_batch[key] = sampled_batch[key][..., None]
             mean = self.model(
                   sampled_batch['obs'],sampled_batch['actions'])
-            labels=torch.cat([sampled_batch['rewards'] , sampled_batch['next_obs']-sampled_batch['obs']],dim=-1)
+            #! res mode
+            #labels=torch.cat([sampled_batch['rewards'] , sampled_batch['next_obs']-sampled_batch['obs']],dim=-1)
+            #! direct way
+            labels=torch.cat([sampled_batch['rewards'] , sampled_batch['next_obs']],dim=-1)
 
             mse_loss = F.mse_loss(mean,labels)
             self.model_optim.zero_grad()
@@ -97,9 +100,7 @@ class MBPO(BaseAgent):
             ensemble_model_means = self.model(
                 sampled_batch['next_obs'], next_action)
 
-            ensemble_model_means[:, :, 1:] += sampled_batch['next_obs']
-            #ensemble_model_stds = torch.sqrt(ensemble_model_vars)
-            #ensemble_model_means + torch.randn(size=ensemble_model_means.shape).cuda() * ensemble_model_stds
+            #ensemble_model_means[:, :, 1:] += sampled_batch['next_obs']
             num_models, batch_size, _ = ensemble_model_means.shape
             model_idxes = torch.randint(num_models, (batch_size,))
             batch_idxes = torch.arange(0, batch_size)
