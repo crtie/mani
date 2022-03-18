@@ -227,7 +227,7 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_po
                     tmp_time = time.time()
                     if(is_mbrl):
                         tf_logs.push(
-                            **agent.update_parameters(replay_model, updates=total_updates))
+                            **agent.update_parameters(replay_model, memory2=replay_env,updates=total_updates))
                     else:
                         tf_logs.push(
                             **agent.update_parameters(replay_env, updates=total_updates))
