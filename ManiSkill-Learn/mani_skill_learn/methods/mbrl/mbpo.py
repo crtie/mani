@@ -127,9 +127,9 @@ class MBPO(BaseAgent):
                 pred_reward).bool().cpu().numpy()
         replay_model.push_batch(**rollout)
 
-    def update_parameters(self, memory1,updates,memory2=None,alpha=0.5):
+    def update_parameters(self, memory1,updates,memory2=None,alpha=0.1):
         sampled_batch1 = memory1.sample(int(self.batch_size*alpha))
-        sampled_batch2=memory2.sample(int(self.batch_size*(1-alpha)))
+        sampled_batch2=memory2.sample(self.batch_size-int(self.batch_size*alpha))
         sampled_batch={}
         for key in sampled_batch1:
             if not isinstance(sampled_batch1[key], dict) and sampled_batch1[key].ndim == 1:
@@ -138,6 +138,10 @@ class MBPO(BaseAgent):
             if not isinstance(sampled_batch2[key], dict) and sampled_batch2[key].ndim == 1:
                 sampled_batch2[key] = sampled_batch2[key][..., None]
         permutation = list(np.random.permutation(self.batch_size))
+        for key in sampled_batch:
+            if not isinstance(sampled_batch[key], dict) and sampled_batch[key].ndim == 1:
+                sampled_batch[key] = sampled_batch[key][..., None]
+
         for key in sampled_batch1.keys():
             sampled_batch[key]=np.concatenate((sampled_batch1[key],sampled_batch2[key]),axis=0)
             sampled_batch[key]=sampled_batch[key][permutation,:]
@@ -145,9 +149,7 @@ class MBPO(BaseAgent):
 
         sampled_batch = to_torch(
             sampled_batch, dtype='float32', device=self.device, non_blocking=True)
-        for key in sampled_batch:
-            if not isinstance(sampled_batch[key], dict) and sampled_batch[key].ndim == 1:
-                sampled_batch[key] = sampled_batch[key][..., None]
+
         with torch.no_grad():  # ! 这里为啥不用梯度
             next_action, next_log_prob = self.policy(
                 sampled_batch['next_obs'], mode='all')[:2]
