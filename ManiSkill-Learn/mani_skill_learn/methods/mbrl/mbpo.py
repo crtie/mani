@@ -127,9 +127,15 @@ class MBPO(BaseAgent):
                 pred_reward).bool().cpu().numpy()
         replay_model.push_batch(**rollout)
 
-    def update_parameters(self, memory1,updates,memory2=None,alpha=0.1):
-        sampled_batch1 = memory1.sample(int(self.batch_size*alpha))
-        sampled_batch2=memory2.sample(self.batch_size-int(self.batch_size*alpha))
+    def update_parameters(self, memory1,updates,memory2=None,alpha=0.05,iter=0):
+        if(iter==0): #! static rate
+            sampled_batch1 = memory1.sample(int(self.batch_size*alpha))
+            sampled_batch2=memory2.sample(self.batch_size-int(self.batch_size*alpha))
+        else:
+            alpha=min(1,float(iter/200))
+            #print(f'{alpha*100}percentage data are collected from model buffer')
+            sampled_batch1 = memory1.sample(int(self.batch_size*alpha))
+            sampled_batch2=memory2.sample(self.batch_size-int(self.batch_size*alpha))
         sampled_batch={}
         for key in sampled_batch1:
             if not isinstance(sampled_batch1[key], dict) and sampled_batch1[key].ndim == 1:

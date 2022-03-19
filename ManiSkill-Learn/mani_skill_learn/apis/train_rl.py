@@ -187,7 +187,7 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_po
             loss=agent.train_model(replay_env)
             #writer.add_scalar("pred_loss",loss_obs+loss_rew,iteration_id)
             print_dict['pred loss']=float(loss)
-            #print(f"iter {iteration_id} loss is {loss}")
+            print(f"iter {iteration_id} loss is {loss}")
 
         if n_steps > 0:
             # For online RL
@@ -227,7 +227,7 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_po
                     tmp_time = time.time()
                     if(is_mbrl):
                         tf_logs.push(
-                            **agent.update_parameters(replay_model, memory2=replay_env,updates=total_updates))
+                            **agent.update_parameters(replay_model, memory2=replay_env,updates=total_updates,iter=iteration_id))
                     else:
                         tf_logs.push(
                             **agent.update_parameters(replay_env, updates=total_updates))
