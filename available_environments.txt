@@ -240,3 +240,5 @@ MoveBucket_4052-v0
 MoveBucket_4055-v0
 MoveBucket_4056-v0
 PushChair_CustomSplit-v0
+python -m tools.run_rl configs/sac/sac_mani_skill_state_1M_train.py --seed=0 --cfg-options "env_cfg.env_name=OpenCabinetDrawer-v0" --num-gpus=2 --clean-up
+python -m tools.run_rl configs/sac/sac_mani_skill_state_1M_train.py --seed=0 --cfg-options "env_cfg.env_name=OpenCabinetDrawer_1000_link_0-v0" --num-gpus=1 --clean-up

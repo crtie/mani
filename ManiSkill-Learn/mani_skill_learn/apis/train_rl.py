@@ -93,6 +93,7 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_po
     from mani_skill_learn.utils.torch import get_cuda_info
     replay_env.reset()
     #! 只有mbrl才有replay_model
+
     if (replay_model!=None):
         is_mbrl=1
         replay_model.reset()
@@ -154,9 +155,8 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_po
         episode_statistics.push(
             trajectories['rewards'], trajectories['episode_dones'])
         replay_env.push_batch(**trajectories)
-        #print(trajectories['dones'].shape)
-        #print(trajectories['rewards'].shape)
-        #exit(0)
+        if is_mbrl:
+            replay_model.push_batch(**trajectories)
         rollout.reset()
         episode_statistics.reset_current()
         check_eval.check(warm_steps)
@@ -182,10 +182,7 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_po
         update_time = 0
         time_begin_episode = time.time()
         if(is_mbrl):
-            #loss_obs,loss_rew=agent.train_model(replay_env)
-            #print(f"iter {iteration_id}  loss is {loss_obs.item()}+{loss_rew.item()}")
             loss=agent.train_model(replay_env)
-            #writer.add_scalar("pred_loss",loss_obs+loss_rew,iteration_id)
             print_dict['pred loss']=float(loss)
             print(f"iter {iteration_id} loss is {loss}")
 
@@ -203,24 +200,18 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_po
             if(is_mbrl):
                 print(f"model buffer size is {len(replay_model)}")
             while num_done < n_steps and not (on_policy and num_done > 0):
-                
-                tmp_time = time.time()
-                trajectories, infos = rollout.forward_with_policy(
-                    agent.policy, n_steps, whole_episode=on_policy)
-                #! 这句每执行一次走八个环境步
-                #! trajectories are dict of keys {obs,actions,next_obs,rewards,dones,episode_dones}
-                episode_statistics.push(
-                    trajectories['rewards'], trajectories['episode_dones'])
-                collect_sample_time += time.time() - tmp_time
+                for _ in range (8):
+                    tmp_time = time.time()
+                    trajectories, infos = rollout.forward_with_policy(agent.policy, n_steps, whole_episode=on_policy)
+                    episode_statistics.push(trajectories['rewards'], trajectories['episode_dones'])
+                    collect_sample_time += time.time() - tmp_time
 
-                num_done += np.sum(trajectories['episode_dones'])
-                cnt_episodes += np.sum(
-                    trajectories['episode_dones'].astype(np.int32))
-                replay_env.push_batch(**trajectories)
-                steps += n_steps
-            
-                if(is_mbrl):
-                    agent.model_rollout(replay_env,replay_model)
+                    num_done += np.sum(trajectories['episode_dones'])
+                    cnt_episodes += np.sum(trajectories['episode_dones'].astype(np.int32))
+                    replay_env.push_batch(**trajectories)
+                    steps += n_steps
+                    if(is_mbrl):
+                        agent.model_rollout(replay_env,replay_model)
 
                 for i in range(n_updates):
                     total_updates += 1

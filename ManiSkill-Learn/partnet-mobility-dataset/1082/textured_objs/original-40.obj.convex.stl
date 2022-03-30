@@ -1,0 +1,226 @@
+solid AssimpScene
+ facet normal 0 0 0
+  outer loop
+  vertex -0.357218 0.406257 0.52804202
+  vertex -0.357218 0.411944 0.529598
+  vertex -0.357218 0.45945901 0.529598
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex -0.357218 0.406257 0.52804202
+  vertex -0.357218 0.45945901 0.529598
+  vertex -0.357218 0.47692299 0.51333702
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex -0.357218 0.406257 0.52804202
+  vertex -0.357218 0.47692299 0.51333702
+  vertex -0.357218 0.47692299 0.50588602
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex -0.357218 0.406257 0.52804202
+  vertex -0.357218 0.47692299 0.50588602
+  vertex -0.357218 0.46461001 0.49798501
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex -0.357218 0.406257 0.52804202
+  vertex -0.357218 0.46461001 0.49798501
+  vertex -0.357218 0.40436 0.49798501
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex -0.357218 0.406257 0.52804202
+  vertex -0.357218 0.40436 0.49798501
+  vertex -0.357218 0.40393201 0.52414399
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex -0.357218 0.46461001 0.49798501
+  vertex 0.33392799 0.46461001 0.49798501
+  vertex 0.33392799 0.40436 0.49798501
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex -0.357218 0.46461001 0.49798501
+  vertex 0.33392799 0.40436 0.49798501
+  vertex -0.357218 0.40436 0.49798501
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.33392799 0.47692299 0.50588602
+  vertex 0.33392799 0.46461001 0.49798501
+  vertex -0.357218 0.46461001 0.49798501
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.33392799 0.47692299 0.50588602
+  vertex -0.357218 0.46461001 0.49798501
+  vertex -0.357218 0.47692299 0.50588602
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex -0.357218 0.47692299 0.51333702
+  vertex -0.357218 0.45945901 0.529598
+  vertex 0.33392799 0.45945901 0.529598
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex -0.357218 0.47692299 0.51333702
+  vertex 0.33392799 0.45945901 0.529598
+  vertex 0.33392799 0.47692299 0.51333702
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex -0.357218 0.47692299 0.51333702
+  vertex 0.33392799 0.47692299 0.51333702
+  vertex 0.33392799 0.47692299 0.50588602
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex -0.357218 0.47692299 0.51333702
+  vertex 0.33392799 0.47692299 0.50588602
+  vertex -0.357218 0.47692299 0.50588602
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.33392799 0.40393201 0.52414399
+  vertex -0.357218 0.40393201 0.52414399
+  vertex -0.357218 0.40436 0.49798501
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.33392799 0.40393201 0.52414399
+  vertex -0.357218 0.40436 0.49798501
+  vertex 0.33392799 0.40436 0.49798501
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex -0.357218 0.406257 0.52804202
+  vertex -0.357218 0.40393201 0.52414399
+  vertex 0.33392799 0.40393201 0.52414399
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex -0.357218 0.406257 0.52804202
+  vertex 0.33392799 0.40393201 0.52414399
+  vertex 0.33392799 0.406257 0.52804202
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.33392799 0.411944 0.529598
+  vertex 0.33392799 0.45945901 0.529598
+  vertex -0.357218 0.45945901 0.529598
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.33392799 0.411944 0.529598
+  vertex -0.357218 0.45945901 0.529598
+  vertex -0.357218 0.411944 0.529598
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.33392799 0.411944 0.529598
+  vertex -0.357218 0.411944 0.529598
+  vertex -0.357218 0.406257 0.52804202
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.33392799 0.411944 0.529598
+  vertex -0.357218 0.406257 0.52804202
+  vertex 0.33392799 0.406257 0.52804202
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.33392799 0.411944 0.529598
+  vertex 0.33392799 0.406257 0.52804202
+  vertex 0.33392799 0.40393201 0.52414399
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.33392799 0.411944 0.529598
+  vertex 0.33392799 0.40393201 0.52414399
+  vertex 0.33392799 0.40436 0.49798501
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.33392799 0.411944 0.529598
+  vertex 0.33392799 0.40436 0.49798501
+  vertex 0.33392799 0.46461001 0.49798501
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.33392799 0.411944 0.529598
+  vertex 0.33392799 0.46461001 0.49798501
+  vertex 0.33392799 0.47692299 0.50588602
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.33392799 0.411944 0.529598
+  vertex 0.33392799 0.47692299 0.50588602
+  vertex 0.33392799 0.47692299 0.51333702
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.33392799 0.411944 0.529598
+  vertex 0.33392799 0.47692299 0.51333702
+  vertex 0.33392799 0.45945901 0.529598
+  endloop
+ endfacet
+
+endsolidAssimpScene

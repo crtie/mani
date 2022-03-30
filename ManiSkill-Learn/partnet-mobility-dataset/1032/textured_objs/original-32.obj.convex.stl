@@ -1,0 +1,98 @@
+solid AssimpScene
+ facet normal 0 0 0
+  outer loop
+  vertex 0.25542578 0.53683901 0.318194
+  vertex 0.25542578 0.53683901 0.191753
+  vertex 0.25542578 0.49827504 0.191753
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.25542578 0.53683901 0.318194
+  vertex 0.25542578 0.49827504 0.191753
+  vertex 0.25542578 0.49827504 0.318194
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.2592822 0.53683901 0.318194
+  vertex 0.2592822 0.53683901 0.191753
+  vertex 0.25542578 0.53683901 0.191753
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.2592822 0.53683901 0.318194
+  vertex 0.25542578 0.53683901 0.191753
+  vertex 0.25542578 0.53683901 0.318194
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.2592822 0.49827504 0.191753
+  vertex 0.25542578 0.49827504 0.191753
+  vertex 0.25542578 0.53683901 0.191753
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.2592822 0.49827504 0.191753
+  vertex 0.25542578 0.53683901 0.191753
+  vertex 0.2592822 0.53683901 0.191753
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.2592822 0.49827504 0.318194
+  vertex 0.25542578 0.49827504 0.318194
+  vertex 0.25542578 0.49827504 0.191753
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.2592822 0.49827504 0.318194
+  vertex 0.25542578 0.49827504 0.191753
+  vertex 0.2592822 0.49827504 0.191753
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.2592822 0.49827504 0.318194
+  vertex 0.2592822 0.49827504 0.191753
+  vertex 0.2592822 0.53683901 0.191753
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.2592822 0.49827504 0.318194
+  vertex 0.2592822 0.53683901 0.191753
+  vertex 0.2592822 0.53683901 0.318194
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.2592822 0.49827504 0.318194
+  vertex 0.2592822 0.53683901 0.318194
+  vertex 0.25542578 0.53683901 0.318194
+  endloop
+ endfacet
+
+ facet normal 0 0 0
+  outer loop
+  vertex 0.2592822 0.49827504 0.318194
+  vertex 0.25542578 0.53683901 0.318194
+  vertex 0.25542578 0.49827504 0.318194
+  endloop
+ endfacet
+
+endsolidAssimpScene

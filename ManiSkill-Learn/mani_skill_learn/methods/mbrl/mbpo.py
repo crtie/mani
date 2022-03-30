@@ -72,8 +72,8 @@ class MBPO(BaseAgent):
             for key in sampled_batch:
                 if not isinstance(sampled_batch[key], dict) and sampled_batch[key].ndim == 1:
                     sampled_batch[key] = sampled_batch[key][..., None]
-            mean = self.model(
-                  sampled_batch['obs'],sampled_batch['actions'])
+            mean = torch.mean(self.model(
+                  sampled_batch['obs'],sampled_batch['actions']),dim=0)
             labels=torch.cat([sampled_batch['rewards'] , sampled_batch['next_obs']-sampled_batch['obs']],dim=-1)
 
             mse_loss = F.mse_loss(mean,labels)
@@ -132,7 +132,7 @@ class MBPO(BaseAgent):
             sampled_batch1 = memory1.sample(int(self.batch_size*alpha))
             sampled_batch2=memory2.sample(self.batch_size-int(self.batch_size*alpha))
         else:
-            alpha=min(1,float(iter/200))
+            alpha=min(1,float(iter/500))
             #print(f'{alpha*100}percentage data are collected from model buffer')
             sampled_batch1 = memory1.sample(int(self.batch_size*alpha))
             sampled_batch2=memory2.sample(self.batch_size-int(self.batch_size*alpha))
