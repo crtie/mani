@@ -23,10 +23,7 @@ class ContinuousValue(ExtendedModule):
             self.values[i].init_weights(pretrained[i], **init_cfg)
 
     def forward(self, state, action=None):
-        print(state,action.shape)
         inputs = combine_obs_with_action(state, action)
-        print(inputs)
-        exit(0)
         ret = [value(inputs) for value in self.values]
-        #print(torch.cat(ret, dim=-1).shape)
+        # print(torch.cat(ret, dim=-1).shape)
         return torch.cat(ret, dim=-1)

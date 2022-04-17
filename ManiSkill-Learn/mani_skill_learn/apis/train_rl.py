@@ -13,9 +13,12 @@ from mani_skill_learn.env import ReplayMemory
 from mani_skill_learn.env import save_eval_statistics
 from mani_skill_learn.utils.data import dict_to_str, get_shape, is_seq_of
 from mani_skill_learn.utils.meta import get_logger, get_total_memory, td_format
+from mani_skill_learn.utils.data import to_torch,to_np,merge_dict
 from mani_skill_learn.utils.torch import TensorboardLogger, save_checkpoint
 from mani_skill_learn.utils.math import split_num
 from torch.utils.tensorboard import SummaryWriter
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 #writer = SummaryWriter("logs")
 
 class EpisodicStatistics:
@@ -138,7 +141,6 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_po
         # Batch RL
         if 'obs' not in replay_env.memory:
             logger.error('Empty replay buffer for Batch RL!')
-            exit(0)
         logger.info(
             f'State dim: {get_shape(replay_env["obs"])}, action dim: {replay_env["actions"].shape[-1]}')
 
@@ -149,12 +151,37 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_po
     if warm_steps > 0:
         assert not on_policy
         assert rollout is not None
-        trajectories = rollout.forward_with_policy(None, warm_steps)[0]
+        trajectories = rollout.forward_with_policy(agent.policy, warm_steps)[0]
         #print(len(trajectories['rewards']))
         #! trajectories are dict of keys {obs,actions,next_obs,rewards,dones,episode_dones}
         episode_statistics.push(
             trajectories['rewards'], trajectories['episode_dones'])
         replay_env.push_batch(**trajectories)
+        vial=1
+        if vial:
+            with torch.no_grad():
+                trajectories = to_torch(
+                    trajectories, dtype='float32', device=torch.cuda.current_device(), non_blocking=True)
+                pred = agent.model(
+                    trajectories['obs'], trajectories['actions'])
+                pred=to_np(pred)
+                trajectories=to_np(trajectories)
+
+            print(trajectories['obs']['pointcloud']['xyz'].shape)
+            np.savetxt('seg.txt',trajectories['obs']['pointcloud']['seg'][0,:])
+            np.savetxt('obs0.txt',trajectories['obs']['pointcloud']['xyz'][:50,:,0])
+            np.savetxt('obs1.txt',trajectories['obs']['pointcloud']['xyz'][:50,:,1])
+            np.savetxt('obs2.txt',trajectories['obs']['pointcloud']['xyz'][:50,:,2])
+            np.savetxt('nextobs0.txt',trajectories['next_obs']['pointcloud']['xyz'][:50,:,0])
+            np.savetxt('nextobs1.txt',trajectories['next_obs']['pointcloud']['xyz'][:50,:,1])
+            np.savetxt('nextobs2.txt',trajectories['next_obs']['pointcloud']['xyz'][:50,:,2])
+
+            np.savetxt('predobs0.txt',pred['pointcloud']['xyz'][:50,:,0])
+            np.savetxt('predobs1.txt',pred['pointcloud']['xyz'][:50,:,1])
+            np.savetxt('predobs2.txt',pred['pointcloud']['xyz'][:50,:,2])
+            np.savetxt('rew.txt',trajectories['rewards'][:50])
+            exit()
+
         if is_mbrl:
             replay_model.push_batch(**trajectories)
         rollout.reset()
@@ -183,8 +210,10 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_po
         time_begin_episode = time.time()
         if(is_mbrl):
             loss=agent.train_model(replay_env)
-            print_dict['pred loss']=float(loss)
-            print(f"iter {iteration_id} loss is {loss}")
+            for i in range(len(loss)):
+                print(f"iter {iteration_id} loss {i+1} is {float(loss[i])}")
+                print_dict[f'pred loss{i+1}']=float(loss[i])
+            
 
         if n_steps > 0:
             # For online RL

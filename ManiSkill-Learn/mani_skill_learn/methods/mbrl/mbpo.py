@@ -1,6 +1,8 @@
 """
 ! Model Based Reinforcement Learning
 """
+import sys
+sys.path.append("/home/ruichentie/mani/ChamferDistancePytorch")
 import numpy as np
 import torch
 import torch.nn as nn
@@ -8,18 +10,19 @@ import torch.nn.functional as F
 
 from mani_skill_learn.networks import build_model, hard_update, soft_update
 from mani_skill_learn.optimizers import build_optimizer
-from mani_skill_learn.utils.data import to_torch
+from mani_skill_learn.utils.data import to_torch,to_np,merge_dict
 from ..builder import MBRL
 from mani_skill_learn.utils.torch import BaseAgent
 from mani_skill_learn.utils.meta import get_logger, get_total_memory, td_format
 from torch.utils.tensorboard import SummaryWriter
+import chamfer3D.dist_chamfer_3D
 writer = SummaryWriter("logs")
 
 
 @MBRL.register_module()
 class MBPO(BaseAgent):
     def __init__(self, policy_cfg, value_cfg, model_cfg, obs_shape, action_shape, action_space, batch_size=128, gamma=0.99,
-                 update_coeff=0.005, alpha=0.2, target_update_interval=1, automatic_alpha_tuning=True,
+                 update_coeff=0.005, alpha=0.2, target_update_interval=1, max_iter_use_real_data=1000, automatic_alpha_tuning=True,
                  alpha_optim_cfg=None):
         super(MBPO, self).__init__()
         policy_optim_cfg = policy_cfg.pop("optim_cfg")
@@ -32,6 +35,7 @@ class MBPO(BaseAgent):
         self.batch_size = batch_size
         self.target_update_interval = target_update_interval
         self.automatic_alpha_tuning = automatic_alpha_tuning
+        self.max_iter_use_real_data=max_iter_use_real_data
 
         policy_cfg['obs_shape'] = obs_shape
         policy_cfg['action_shape'] = action_shape
@@ -45,6 +49,7 @@ class MBPO(BaseAgent):
         self.policy = build_model(policy_cfg)
         self.critic = build_model(value_cfg)
         self.model = build_model(model_cfg)
+        
 
         #print("now we are printing model")
         # print(self.model)
@@ -65,22 +70,36 @@ class MBPO(BaseAgent):
 
     def train_model(self, replay_env):
         # print(self.model)
-        for i in range(100):
+        chamLoss = chamfer3D.dist_chamfer_3D.chamfer_3DDist()
+        for i in range(256):
             sampled_batch = replay_env.sample(self.batch_size)
             sampled_batch = to_torch(
                 sampled_batch, dtype='float32', device=self.device, non_blocking=True)
             for key in sampled_batch:
                 if not isinstance(sampled_batch[key], dict) and sampled_batch[key].ndim == 1:
                     sampled_batch[key] = sampled_batch[key][..., None]
-            mean = torch.mean(self.model(
-                  sampled_batch['obs'],sampled_batch['actions']),dim=0)
-            labels=torch.cat([sampled_batch['rewards'] , sampled_batch['next_obs']-sampled_batch['obs']],dim=-1)
+            pred = self.model(
+                  sampled_batch['obs'],sampled_batch['actions'])
+            if isinstance (pred ,dict):#! 输入是点云
+                loss1=F.mse_loss(sampled_batch['rewards'].squeeze(),pred['rewards'])
+                # print(sampled_batch['rewards'].shape,pred['reward'].shape)
+                loss2=F.mse_loss(sampled_batch['next_obs']['state'],pred['state'])
+                # print(sampled_batch['next_obs']['state'].shape,pred['state'].shape)
+                # print(sampled_batch['next_obs']['pointcloud']['xyz'].shape,pred['pointcloud']['xyz'].shape)
+                dist1, dist2, idx1, idx2 = chamLoss(sampled_batch['next_obs']['pointcloud']['xyz'],pred['pointcloud']['xyz'])
+                loss3 = (torch.mean(dist1)) + (torch.mean(dist2))
+                # print(loss1,loss2,loss3)
+                # print(loss1,loss2,loss3)
+                mse_loss=loss1+loss2+100*loss3
+                # print(mse_loss)
+            else:  #! 输入是state
+                labels=torch.cat([sampled_batch['rewards'] , sampled_batch['next_obs']-sampled_batch['obs']],dim=-1)
+                mse_loss = F.mse_loss(pred,labels)
 
-            mse_loss = F.mse_loss(mean,labels)
             self.model_optim.zero_grad()
             mse_loss.backward()
             self.model_optim.step()
-        return mse_loss
+        return loss1,loss2,loss3
 
     def model_rollout(self, replay_env, replay_model):
           # ! 每次造4倍于环境步的model数据
@@ -94,48 +113,45 @@ class MBPO(BaseAgent):
         with torch.no_grad():
             next_action = self.policy(
                 sampled_batch['next_obs'], mode='sample')
-            ensemble_model_means = self.model(
+            pred = self.model(
                 sampled_batch['next_obs'], next_action)
+            if isinstance(pred,dict): #! take pointcloud as input
+                pred_obs={}
+                pred_obs['pointcloud']=pred['pointcloud']
+                pred_obs['state']=pred['state']
+                pred_reward=pred['rewards']
 
-            ensemble_model_means[:, :, 1:] += sampled_batch['next_obs']
-            #ensemble_model_stds = torch.sqrt(ensemble_model_vars)
-            #ensemble_model_means + torch.randn(size=ensemble_model_means.shape).cuda() * ensemble_model_stds
-            num_models, batch_size, _ = ensemble_model_means.shape
-            model_idxes = torch.randint(num_models, (batch_size,))
-            batch_idxes = torch.arange(0, batch_size)
-            #print(model_idxes)
-            samples = ensemble_model_means[model_idxes, batch_idxes]
-            #print(samples.shape,samples)
-            
-            pred_reward, pred_obs = samples[:, :1], samples[:, 1:]
-            #print(pred_reward.shape,pred_obs.shape)
-            rollout = dict()
-            #! trajectories are dict of keys {obs,actions,next_obs,rewards,dones,episode_dones}
-            rollout['obs'] = sampled_batch['next_obs'].cpu().numpy()
-            rollout['actions'] = next_action.cpu().numpy()
-            #rollout['rewards']=[]
-            #for i in range(batch_size):
-                #rew=env.compute_dense_reward(np.array(sampled_batch['actions'][i].cpu()),np.concatenate((sampled_batch['next_obs'][i].cpu(),pad)))[0]
-                #print(abs(sampled_batch['rewards'][i]-rew))
-             #   rollout['rewards'].append([env.compute_dense_reward(rollout['actions'][i],np.concatenate((rollout['next_obs'][i],pad)))[0]])
-            #rollout['rewards']=np.array(rollout['rewards'])
-            rollout['next_obs'] = pred_obs.cpu().numpy()
-            rollout['rewards'] = pred_reward.cpu().numpy()
-            rollout['dones'] = torch.zeros_like(
-                pred_reward).bool().cpu().numpy()
-            rollout['episode_dones'] = torch.zeros_like(
-                pred_reward).bool().cpu().numpy()
+
+            else:#! state input
+                pred[:, :, 1:] += sampled_batch['next_obs']
+                num_models, batch_size, _ = ensemble_model_means.shape
+                model_idxes = torch.randint(num_models, (batch_size,))
+                batch_idxes = torch.arange(0, batch_size)
+                #print(model_idxes)
+                samples = pred[model_idxes, batch_idxes]
+                #print(samples.shape,samples)
+                
+                pred_reward, pred_obs = samples[:, :1], samples[:, 1:]
+                #print(pred_reward.shape,pred_obs.shape)
+        rollout = dict()
+                #! trajectories are dict of keys {obs,actions,next_obs,rewards,dones,episode_dones}
+        rollout['obs'] = to_np(sampled_batch['next_obs'])
+        rollout['actions'] = to_np(next_action)
+        rollout['next_obs'] = to_np(pred_obs)
+        rollout['rewards'] = to_np(pred_reward)
+        rollout['dones'] = np.zeros_like(pred_reward.cpu())
+        rollout['episode_dones'] = np.zeros_like(pred_reward.cpu())
         replay_model.push_batch(**rollout)
 
     def update_parameters(self, memory1,updates,memory2=None,alpha=0.05,iter=0):
         if(iter==0): #! static rate
             sampled_batch1 = memory1.sample(int(self.batch_size*alpha))
-            sampled_batch2=memory2.sample(self.batch_size-int(self.batch_size*alpha))
+            sampled_batch2 = memory2.sample(self.batch_size-int(self.batch_size*alpha))
         else:
-            alpha=min(1,float(iter/500))
+            alpha=min(0.8,float(iter/self.max_iter_use_real_data))
             #print(f'{alpha*100}percentage data are collected from model buffer')
-            sampled_batch1 = memory1.sample(int(self.batch_size*alpha))
-            sampled_batch2=memory2.sample(self.batch_size-int(self.batch_size*alpha))
+            sampled_batch1 = memory1.sample(max(1,int(self.batch_size*alpha)))
+            sampled_batch2=memory2.sample(self.batch_size-max(1,int(self.batch_size*alpha)))
         sampled_batch={}
         for key in sampled_batch1:
             if not isinstance(sampled_batch1[key], dict) and sampled_batch1[key].ndim == 1:
@@ -144,13 +160,10 @@ class MBPO(BaseAgent):
             if not isinstance(sampled_batch2[key], dict) and sampled_batch2[key].ndim == 1:
                 sampled_batch2[key] = sampled_batch2[key][..., None]
         permutation = list(np.random.permutation(self.batch_size))
-        for key in sampled_batch:
-            if not isinstance(sampled_batch[key], dict) and sampled_batch[key].ndim == 1:
-                sampled_batch[key] = sampled_batch[key][..., None]
-
-        for key in sampled_batch1.keys():
-            sampled_batch[key]=np.concatenate((sampled_batch1[key],sampled_batch2[key]),axis=0)
-            sampled_batch[key]=sampled_batch[key][permutation,:]
+        # for key in sampled_batch:
+        #     if not isinstance(sampled_batch[key], dict) and sampled_batch[key].ndim == 1:
+        #         sampled_batch[key] = sampled_batch[key][..., None]
+        sampled_batch=merge_dict(sampled_batch1,sampled_batch2,permutation)
 
 
         sampled_batch = to_torch(

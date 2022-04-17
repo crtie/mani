@@ -31,4 +31,5 @@ def build_model(cfg, default_args=None):
     for model_type in [BACKBONES, POLICYNETWORKS, VALUENETWORKS, MODELNETWORKS]:
         if cfg['type'] in model_type.module_dict:
             return build(cfg, model_type, default_args)
+    print(model_type.module_dict)
     raise RuntimeError(f"No this model type:{cfg['type']}!")

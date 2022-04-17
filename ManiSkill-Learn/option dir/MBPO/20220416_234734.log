@@ -1,0 +1,1243 @@
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-04-16 23:47:36 - Environment info:
+------------------------------------------------------------
+sys.platform: linux
+Python: 3.8.10 (default, Jun  4 2021, 15:09:15) [GCC 7.5.0]
+CUDA available: True
+GPU 0,1,2,3,4,5,6: Tesla V100S-PCIE-32GB
+CUDA_HOME: /usr/local/cuda-11.2
+NVCC: Build cuda_11.2.r11.2/compiler.29618528_0
+Num of GPUs: 7
+GCC: gcc (Ubuntu 9.4.0-1ubuntu1~20.04.1) 9.4.0
+PyTorch: 1.11.0+cu102
+PyTorch compiling details: PyTorch built with:
+  - GCC 7.3
+  - C++ Version: 201402
+  - Intel(R) oneAPI Math Kernel Library Version 2021.3-Product Build 20210617 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v2.5.2 (Git Hash a9302535553c73243c632ad3c4c80beec3d19a1e)
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - LAPACK is enabled (usually provided by MKL)
+  - NNPACK is enabled
+  - CPU capability usage: AVX2
+  - CUDA Runtime 10.2
+  - NVCC architecture flags: -gencode;arch=compute_37,code=sm_37;-gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_70,code=sm_70
+  - CuDNN 7.6.5
+  - Magma 2.5.2
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, CUDA_VERSION=10.2, CUDNN_VERSION=7.6.5, CXX_COMPILER=/opt/rh/devtoolset-7/root/usr/bin/c++, CXX_FLAGS= -Wno-deprecated -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -fopenmp -DNDEBUG -DUSE_KINETO -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -DEDGE_PROFILER_USE_KINETO -O2 -fPIC -Wno-narrowing -Wall -Wextra -Werror=return-type -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wno-sign-compare -Wno-unused-parameter -Wno-unused-function -Wno-unused-result -Wno-unused-local-typedefs -Wno-strict-overflow -Wno-strict-aliasing -Wno-error=deprecated-declarations -Wno-stringop-overflow -Wno-psabi -Wno-error=pedantic -Wno-error=redundant-decls -Wno-error=old-style-cast -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, TORCH_VERSION=1.11.0, USE_CUDA=ON, USE_CUDNN=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=OFF, USE_MPI=OFF, USE_NCCL=ON, USE_NNPACK=ON, USE_OPENMP=ON, USE_ROCM=OFF, 
+
+TorchVision: 0.12.0+cu102
+OpenCV: 4.5.3
+mani_skill_learn: 1.0.0
+------------------------------------------------------------
+
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-04-16 23:47:37 - Config:
+agent = dict(
+    type='MBPO',
+    batch_size=512,
+    gamma=0.95,
+    update_coeff=0.005,
+    alpha=0.2,
+    target_update_interval=1,
+    automatic_alpha_tuning=True,
+    alpha_optim_cfg=dict(type='Adam', lr=0.0003),
+    max_iter_use_real_data=1000,
+    policy_cfg=dict(
+        type='ContinuousPolicy',
+        policy_head_cfg=dict(
+            type='GaussianHead', log_sig_min=-20, log_sig_max=2,
+            epsilon=1e-06),
+        nn_cfg=dict(
+            type='PointNetWithInstanceInfoV0',
+            stack_frame=1,
+            num_objs='num_objs',
+            pcd_pn_cfg=dict(
+                type='PointNetV0',
+                conv_cfg=dict(
+                    type='ConvMLP',
+                    norm_cfg=None,
+                    mlp_spec=['agent_shape + pcd_xyz_rgb_channel', 192, 192],
+                    bias='auto',
+                    inactivated_output=True,
+                    conv_init_cfg=dict(type='xavier_init', gain=1, bias=0)),
+                mlp_cfg=dict(
+                    type='LinearMLP',
+                    norm_cfg=None,
+                    mlp_spec=[192, 192, 192],
+                    bias='auto',
+                    inactivated_output=True,
+                    linear_init_cfg=dict(type='xavier_init', gain=1, bias=0)),
+                subtract_mean_coords=True,
+                max_mean_mix_aggregation=True),
+            state_mlp_cfg=dict(
+                type='LinearMLP',
+                norm_cfg=None,
+                mlp_spec=['agent_shape', 192, 192],
+                bias='auto',
+                inactivated_output=True,
+                linear_init_cfg=dict(type='xavier_init', gain=1, bias=0)),
+            transformer_cfg=dict(
+                type='TransformerEncoder',
+                block_cfg=dict(
+                    attention_cfg=dict(
+                        type='MultiHeadSelfAttention',
+                        embed_dim=192,
+                        num_heads=4,
+                        latent_dim=32,
+                        dropout=0.1),
+                    mlp_cfg=dict(
+                        type='LinearMLP',
+                        norm_cfg=None,
+                        mlp_spec=[192, 768, 192],
+                        bias='auto',
+                        inactivated_output=True,
+                        linear_init_cfg=dict(
+                            type='xavier_init', gain=1, bias=0)),
+                    dropout=0.1),
+                pooling_cfg=dict(embed_dim=192, num_heads=4, latent_dim=32),
+                mlp_cfg=None,
+                num_blocks=2),
+            final_mlp_cfg=dict(
+                type='LinearMLP',
+                norm_cfg=None,
+                mlp_spec=[192, 128, 'action_shape * 2'],
+                bias='auto',
+                inactivated_output=True,
+                linear_init_cfg=dict(type='xavier_init', gain=1, bias=0))),
+        optim_cfg=dict(type='Adam', lr=0.0003, weight_decay=5e-06)),
+    value_cfg=dict(
+        type='ContinuousValue',
+        num_heads=2,
+        nn_cfg=dict(
+            type='PointNetWithInstanceInfoV0',
+            stack_frame=1,
+            num_objs='num_objs',
+            pcd_pn_cfg=dict(
+                type='PointNetV0',
+                conv_cfg=dict(
+                    type='ConvMLP',
+                    norm_cfg=None,
+                    mlp_spec=[
+                        'agent_shape + pcd_xyz_rgb_channel + action_shape',
+                        192, 192
+                    ],
+                    bias='auto',
+                    inactivated_output=True,
+                    conv_init_cfg=dict(type='xavier_init', gain=1, bias=0)),
+                mlp_cfg=dict(
+                    type='LinearMLP',
+                    norm_cfg=None,
+                    mlp_spec=[192, 192, 192],
+                    bias='auto',
+                    inactivated_output=True,
+                    linear_init_cfg=dict(type='xavier_init', gain=1, bias=0)),
+                subtract_mean_coords=True,
+                max_mean_mix_aggregation=True),
+            state_mlp_cfg=dict(
+                type='LinearMLP',
+                norm_cfg=None,
+                mlp_spec=['agent_shape + action_shape', 192, 192],
+                bias='auto',
+                inactivated_output=True,
+                linear_init_cfg=dict(type='xavier_init', gain=1, bias=0)),
+            transformer_cfg=dict(
+                type='TransformerEncoder',
+                block_cfg=dict(
+                    attention_cfg=dict(
+                        type='MultiHeadSelfAttention',
+                        embed_dim=192,
+                        num_heads=4,
+                        latent_dim=32,
+                        dropout=0.1),
+                    mlp_cfg=dict(
+                        type='LinearMLP',
+                        norm_cfg=None,
+                        mlp_spec=[192, 768, 192],
+                        bias='auto',
+                        inactivated_output=True,
+                        linear_init_cfg=dict(
+                            type='xavier_init', gain=1, bias=0)),
+                    dropout=0.1),
+                pooling_cfg=dict(embed_dim=192, num_heads=4, latent_dim=32),
+                mlp_cfg=None,
+                num_blocks=2),
+            final_mlp_cfg=dict(
+                type='LinearMLP',
+                norm_cfg=None,
+                mlp_spec=[192, 128, 1],
+                bias='auto',
+                inactivated_output=True,
+                linear_init_cfg=dict(type='xavier_init', gain=1, bias=0))),
+        optim_cfg=dict(type='Adam', lr=0.0005, weight_decay=5e-06)),
+    model_cfg=dict(
+        type='Pointnet_transformer_model',
+        num_heads=1,
+        nn_cfg=dict(
+            type='PointNetWorldModel',
+            stack_frame=1,
+            num_objs='num_objs',
+            pcd_pn_cfg=dict(
+                type='PointNetV0',
+                conv_cfg=dict(
+                    type='ConvMLP',
+                    norm_cfg=None,
+                    mlp_spec=[
+                        'agent_shape + pcd_xyz_rgb_channel + action_shape',
+                        192, 192
+                    ],
+                    bias='auto',
+                    inactivated_output=True,
+                    conv_init_cfg=dict(type='xavier_init', gain=1, bias=0)),
+                mlp_cfg=dict(
+                    type='LinearMLP',
+                    norm_cfg=None,
+                    mlp_spec=[192, 192, 192],
+                    bias='auto',
+                    inactivated_output=True,
+                    linear_init_cfg=dict(type='xavier_init', gain=1, bias=0)),
+                subtract_mean_coords=True,
+                max_mean_mix_aggregation=True),
+            state_mlp_cfg=dict(
+                type='LinearMLP',
+                norm_cfg=None,
+                mlp_spec=['agent_shape + action_shape ', 192, 192],
+                bias='auto',
+                inactivated_output=True,
+                linear_init_cfg=dict(type='xavier_init', gain=1, bias=0)),
+            transformer_cfg=dict(
+                type='TransformerEncoder',
+                block_cfg=dict(
+                    attention_cfg=dict(
+                        type='MultiHeadSelfAttention',
+                        embed_dim=192,
+                        num_heads=4,
+                        latent_dim=32,
+                        dropout=0.1),
+                    mlp_cfg=dict(
+                        type='LinearMLP',
+                        norm_cfg=None,
+                        mlp_spec=[192, 768, 192],
+                        bias='auto',
+                        inactivated_output=True,
+                        linear_init_cfg=dict(
+                            type='xavier_init', gain=1, bias=0)),
+                    dropout=0.1),
+                pooling_cfg=dict(embed_dim=192, num_heads=4, latent_dim=32),
+                mlp_cfg=None,
+                num_blocks=2),
+            final_mlp1_cfg=dict(
+                type='LinearMLP',
+                norm_cfg=None,
+                mlp_spec=[
+                    'agent_shape + pcd_all_channel + action_shape + 192', 128,
+                    3
+                ],
+                bias='auto',
+                inactivated_output=True,
+                linear_init_cfg=dict(type='xavier_init', gain=1, bias=0)),
+            final_mlp2_cfg=dict(
+                type='LinearMLP',
+                norm_cfg=None,
+                mlp_spec=[
+                    'agent_shape + action_shape + 192', 128, 'agent_shape +1 '
+                ],
+                bias='auto',
+                inactivated_output=True,
+                linear_init_cfg=dict(type='xavier_init', gain=1, bias=0))),
+        optim_cfg=dict(type='Adam', lr=0.0005, weight_decay=5e-06)))
+log_level = 'INFO'
+train_mfrl_cfg = dict(
+    on_policy=False,
+    total_steps=2000000,
+    warm_steps=4000,
+    n_eval=2000000,
+    n_checkpoint=100000,
+    n_steps=8,
+    n_updates=4)
+rollout_cfg = dict(
+    type='BatchRollout',
+    use_cost=False,
+    reward_only=False,
+    num_procs=8,
+    with_info=False,
+    env_cfg=dict(
+        type='gym',
+        unwrapped=False,
+        obs_mode='pointcloud',
+        reward_type='dense',
+        stack_frame=1,
+        env_name='OpenCabinetDrawer_1000_link_0-v0'))
+eval_cfg = dict(
+    type='BatchEvaluation',
+    num=100,
+    num_procs=2,
+    use_hidden_state=False,
+    start_state=None,
+    save_traj=False,
+    save_video=True,
+    use_log=True,
+    env_cfg=dict(
+        type='gym',
+        unwrapped=False,
+        obs_mode='pointcloud',
+        reward_type='dense',
+        stack_frame=1,
+        env_name='OpenCabinetDrawer_1000_link_0-v0'))
+stack_frame = 1
+num_heads = 4
+env_cfg = dict(
+    type='gym',
+    unwrapped=False,
+    obs_mode='pointcloud',
+    reward_type='dense',
+    stack_frame=1,
+    env_name='OpenCabinetDrawer_1000_link_0-v0')
+replay_cfg = dict(type='ReplayMemory', capacity=1000000)
+replay_model_cfg = dict(type='ReplayMemory', capacity=1000000)
+work_dir = 'option dir/MBPO'
+resume_from = 'work_dirs/OpenCabinetDrawer_1000_link_0-v0/MBPO/models/model_900000.ckpt'
+
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-04-16 23:47:37 - Set random seed to 0
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-04-16 23:47:46 - State shape:{'pointcloud': {'rgb': (1200, 3), 'xyz': (1200, 3), 'seg': (1200, 3)}, 'state': 38}, action shape:Box(-1.0, 1.0, (13,), float32)
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-04-16 23:47:51 - We do not use distributed training, but we support data parallel in torch
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-04-16 23:47:51 - MBPO(
+  (policy): ContinuousPolicy(
+    (backbone): PointNetWithInstanceInfoV0(
+      (pcd_pns): ModuleList(
+        (0): PointNetV0(
+          (conv_mlp): ConvMLP(
+            (mlp): Sequential(
+              (layer0): ConvModule(
+                (conv): Conv1d(47, 192, kernel_size=(1,), stride=(1,))
+                (activate): ReLU(inplace=True)
+              )
+              (layer1): ConvModule(
+                (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+              )
+            )
+          )
+          (global_mlp): LinearMLP(
+            (mlp): Sequential(
+              (linear0): Linear(in_features=192, out_features=192, bias=True)
+              (act0): ReLU()
+              (linear1): Linear(in_features=192, out_features=192, bias=True)
+            )
+          )
+        )
+        (1): PointNetV0(
+          (conv_mlp): ConvMLP(
+            (mlp): Sequential(
+              (layer0): ConvModule(
+                (conv): Conv1d(47, 192, kernel_size=(1,), stride=(1,))
+                (activate): ReLU(inplace=True)
+              )
+              (layer1): ConvModule(
+                (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+              )
+            )
+          )
+          (global_mlp): LinearMLP(
+            (mlp): Sequential(
+              (linear0): Linear(in_features=192, out_features=192, bias=True)
+              (act0): ReLU()
+              (linear1): Linear(in_features=192, out_features=192, bias=True)
+            )
+          )
+        )
+        (2): PointNetV0(
+          (conv_mlp): ConvMLP(
+            (mlp): Sequential(
+              (layer0): ConvModule(
+                (conv): Conv1d(47, 192, kernel_size=(1,), stride=(1,))
+                (activate): ReLU(inplace=True)
+              )
+              (layer1): ConvModule(
+                (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+              )
+            )
+          )
+          (global_mlp): LinearMLP(
+            (mlp): Sequential(
+              (linear0): Linear(in_features=192, out_features=192, bias=True)
+              (act0): ReLU()
+              (linear1): Linear(in_features=192, out_features=192, bias=True)
+            )
+          )
+        )
+        (3): PointNetV0(
+          (conv_mlp): ConvMLP(
+            (mlp): Sequential(
+              (layer0): ConvModule(
+                (conv): Conv1d(47, 192, kernel_size=(1,), stride=(1,))
+                (activate): ReLU(inplace=True)
+              )
+              (layer1): ConvModule(
+                (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+              )
+            )
+          )
+          (global_mlp): LinearMLP(
+            (mlp): Sequential(
+              (linear0): Linear(in_features=192, out_features=192, bias=True)
+              (act0): ReLU()
+              (linear1): Linear(in_features=192, out_features=192, bias=True)
+            )
+          )
+        )
+        (4): PointNetV0(
+          (conv_mlp): ConvMLP(
+            (mlp): Sequential(
+              (layer0): ConvModule(
+                (conv): Conv1d(47, 192, kernel_size=(1,), stride=(1,))
+                (activate): ReLU(inplace=True)
+              )
+              (layer1): ConvModule(
+                (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+              )
+            )
+          )
+          (global_mlp): LinearMLP(
+            (mlp): Sequential(
+              (linear0): Linear(in_features=192, out_features=192, bias=True)
+              (act0): ReLU()
+              (linear1): Linear(in_features=192, out_features=192, bias=True)
+            )
+          )
+        )
+      )
+      (attn): TransformerEncoder(
+        (attn_blocks): ModuleList(
+          (0): TransformerBlock(
+            (attn): MultiHeadSelfAttention(
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=768, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=768, out_features=192, bias=True)
+              )
+            )
+            (ln): LayerNorm((192,), eps=1e-05, elementwise_affine=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+          )
+          (1): TransformerBlock(
+            (attn): MultiHeadSelfAttention(
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=768, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=768, out_features=192, bias=True)
+              )
+            )
+            (ln): LayerNorm((192,), eps=1e-05, elementwise_affine=True)
+            (dropout): Dropout(p=0.1, inplace=False)
+          )
+        )
+        (pooling): AttentionPooling(
+          (dropout): Identity()
+        )
+      )
+      (state_mlp): LinearMLP(
+        (mlp): Sequential(
+          (linear0): Linear(in_features=38, out_features=192, bias=True)
+          (act0): ReLU()
+          (linear1): Linear(in_features=192, out_features=192, bias=True)
+        )
+      )
+      (global_mlp): LinearMLP(
+        (mlp): Sequential(
+          (linear0): Linear(in_features=192, out_features=128, bias=True)
+          (act0): ReLU()
+          (linear1): Linear(in_features=128, out_features=26, bias=True)
+        )
+      )
+    )
+    (policy_head): GaussianHead()
+  )
+  (critic): ContinuousValue(
+    (values): ModuleList(
+      (0): PointNetWithInstanceInfoV0(
+        (pcd_pns): ModuleList(
+          (0): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (1): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (2): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (3): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (4): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+        )
+        (attn): TransformerEncoder(
+          (attn_blocks): ModuleList(
+            (0): TransformerBlock(
+              (attn): MultiHeadSelfAttention(
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (mlp): LinearMLP(
+                (mlp): Sequential(
+                  (linear0): Linear(in_features=192, out_features=768, bias=True)
+                  (act0): ReLU()
+                  (linear1): Linear(in_features=768, out_features=192, bias=True)
+                )
+              )
+              (ln): LayerNorm((192,), eps=1e-05, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (1): TransformerBlock(
+              (attn): MultiHeadSelfAttention(
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (mlp): LinearMLP(
+                (mlp): Sequential(
+                  (linear0): Linear(in_features=192, out_features=768, bias=True)
+                  (act0): ReLU()
+                  (linear1): Linear(in_features=768, out_features=192, bias=True)
+                )
+              )
+              (ln): LayerNorm((192,), eps=1e-05, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+          )
+          (pooling): AttentionPooling(
+            (dropout): Identity()
+          )
+        )
+        (state_mlp): LinearMLP(
+          (mlp): Sequential(
+            (linear0): Linear(in_features=51, out_features=192, bias=True)
+            (act0): ReLU()
+            (linear1): Linear(in_features=192, out_features=192, bias=True)
+          )
+        )
+        (global_mlp): LinearMLP(
+          (mlp): Sequential(
+            (linear0): Linear(in_features=192, out_features=128, bias=True)
+            (act0): ReLU()
+            (linear1): Linear(in_features=128, out_features=1, bias=True)
+          )
+        )
+      )
+      (1): PointNetWithInstanceInfoV0(
+        (pcd_pns): ModuleList(
+          (0): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (1): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (2): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (3): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (4): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+        )
+        (attn): TransformerEncoder(
+          (attn_blocks): ModuleList(
+            (0): TransformerBlock(
+              (attn): MultiHeadSelfAttention(
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (mlp): LinearMLP(
+                (mlp): Sequential(
+                  (linear0): Linear(in_features=192, out_features=768, bias=True)
+                  (act0): ReLU()
+                  (linear1): Linear(in_features=768, out_features=192, bias=True)
+                )
+              )
+              (ln): LayerNorm((192,), eps=1e-05, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (1): TransformerBlock(
+              (attn): MultiHeadSelfAttention(
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (mlp): LinearMLP(
+                (mlp): Sequential(
+                  (linear0): Linear(in_features=192, out_features=768, bias=True)
+                  (act0): ReLU()
+                  (linear1): Linear(in_features=768, out_features=192, bias=True)
+                )
+              )
+              (ln): LayerNorm((192,), eps=1e-05, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+          )
+          (pooling): AttentionPooling(
+            (dropout): Identity()
+          )
+        )
+        (state_mlp): LinearMLP(
+          (mlp): Sequential(
+            (linear0): Linear(in_features=51, out_features=192, bias=True)
+            (act0): ReLU()
+            (linear1): Linear(in_features=192, out_features=192, bias=True)
+          )
+        )
+        (global_mlp): LinearMLP(
+          (mlp): Sequential(
+            (linear0): Linear(in_features=192, out_features=128, bias=True)
+            (act0): ReLU()
+            (linear1): Linear(in_features=128, out_features=1, bias=True)
+          )
+        )
+      )
+    )
+  )
+  (model): Pointnet_transformer_model(
+    (values): ModuleList(
+      (0): PointNetWorldModel(
+        (pcd_pns): ModuleList(
+          (0): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (1): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (2): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (3): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (4): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+        )
+        (attn): TransformerEncoder(
+          (attn_blocks): ModuleList(
+            (0): TransformerBlock(
+              (attn): MultiHeadSelfAttention(
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (mlp): LinearMLP(
+                (mlp): Sequential(
+                  (linear0): Linear(in_features=192, out_features=768, bias=True)
+                  (act0): ReLU()
+                  (linear1): Linear(in_features=768, out_features=192, bias=True)
+                )
+              )
+              (ln): LayerNorm((192,), eps=1e-05, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (1): TransformerBlock(
+              (attn): MultiHeadSelfAttention(
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (mlp): LinearMLP(
+                (mlp): Sequential(
+                  (linear0): Linear(in_features=192, out_features=768, bias=True)
+                  (act0): ReLU()
+                  (linear1): Linear(in_features=768, out_features=192, bias=True)
+                )
+              )
+              (ln): LayerNorm((192,), eps=1e-05, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+          )
+          (pooling): AttentionPooling(
+            (dropout): Identity()
+          )
+        )
+        (state_mlp): LinearMLP(
+          (mlp): Sequential(
+            (linear0): Linear(in_features=51, out_features=192, bias=True)
+            (act0): ReLU()
+            (linear1): Linear(in_features=192, out_features=192, bias=True)
+          )
+        )
+        (global_mlp1): LinearMLP(
+          (mlp): Sequential(
+            (linear0): Linear(in_features=252, out_features=128, bias=True)
+            (act0): ReLU()
+            (linear1): Linear(in_features=128, out_features=3, bias=True)
+          )
+        )
+        (global_mlp2): LinearMLP(
+          (mlp): Sequential(
+            (linear0): Linear(in_features=243, out_features=128, bias=True)
+            (act0): ReLU()
+            (linear1): Linear(in_features=128, out_features=39, bias=True)
+          )
+        )
+      )
+    )
+  )
+  (target_critic): ContinuousValue(
+    (values): ModuleList(
+      (0): PointNetWithInstanceInfoV0(
+        (pcd_pns): ModuleList(
+          (0): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (1): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (2): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (3): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (4): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+        )
+        (attn): TransformerEncoder(
+          (attn_blocks): ModuleList(
+            (0): TransformerBlock(
+              (attn): MultiHeadSelfAttention(
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (mlp): LinearMLP(
+                (mlp): Sequential(
+                  (linear0): Linear(in_features=192, out_features=768, bias=True)
+                  (act0): ReLU()
+                  (linear1): Linear(in_features=768, out_features=192, bias=True)
+                )
+              )
+              (ln): LayerNorm((192,), eps=1e-05, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (1): TransformerBlock(
+              (attn): MultiHeadSelfAttention(
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (mlp): LinearMLP(
+                (mlp): Sequential(
+                  (linear0): Linear(in_features=192, out_features=768, bias=True)
+                  (act0): ReLU()
+                  (linear1): Linear(in_features=768, out_features=192, bias=True)
+                )
+              )
+              (ln): LayerNorm((192,), eps=1e-05, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+          )
+          (pooling): AttentionPooling(
+            (dropout): Identity()
+          )
+        )
+        (state_mlp): LinearMLP(
+          (mlp): Sequential(
+            (linear0): Linear(in_features=51, out_features=192, bias=True)
+            (act0): ReLU()
+            (linear1): Linear(in_features=192, out_features=192, bias=True)
+          )
+        )
+        (global_mlp): LinearMLP(
+          (mlp): Sequential(
+            (linear0): Linear(in_features=192, out_features=128, bias=True)
+            (act0): ReLU()
+            (linear1): Linear(in_features=128, out_features=1, bias=True)
+          )
+        )
+      )
+      (1): PointNetWithInstanceInfoV0(
+        (pcd_pns): ModuleList(
+          (0): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (1): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (2): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (3): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+          (4): PointNetV0(
+            (conv_mlp): ConvMLP(
+              (mlp): Sequential(
+                (layer0): ConvModule(
+                  (conv): Conv1d(60, 192, kernel_size=(1,), stride=(1,))
+                  (activate): ReLU(inplace=True)
+                )
+                (layer1): ConvModule(
+                  (conv): Conv1d(192, 192, kernel_size=(1,), stride=(1,))
+                )
+              )
+            )
+            (global_mlp): LinearMLP(
+              (mlp): Sequential(
+                (linear0): Linear(in_features=192, out_features=192, bias=True)
+                (act0): ReLU()
+                (linear1): Linear(in_features=192, out_features=192, bias=True)
+              )
+            )
+          )
+        )
+        (attn): TransformerEncoder(
+          (attn_blocks): ModuleList(
+            (0): TransformerBlock(
+              (attn): MultiHeadSelfAttention(
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (mlp): LinearMLP(
+                (mlp): Sequential(
+                  (linear0): Linear(in_features=192, out_features=768, bias=True)
+                  (act0): ReLU()
+                  (linear1): Linear(in_features=768, out_features=192, bias=True)
+                )
+              )
+              (ln): LayerNorm((192,), eps=1e-05, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+            (1): TransformerBlock(
+              (attn): MultiHeadSelfAttention(
+                (dropout): Dropout(p=0.1, inplace=False)
+              )
+              (mlp): LinearMLP(
+                (mlp): Sequential(
+                  (linear0): Linear(in_features=192, out_features=768, bias=True)
+                  (act0): ReLU()
+                  (linear1): Linear(in_features=768, out_features=192, bias=True)
+                )
+              )
+              (ln): LayerNorm((192,), eps=1e-05, elementwise_affine=True)
+              (dropout): Dropout(p=0.1, inplace=False)
+            )
+          )
+          (pooling): AttentionPooling(
+            (dropout): Identity()
+          )
+        )
+        (state_mlp): LinearMLP(
+          (mlp): Sequential(
+            (linear0): Linear(in_features=51, out_features=192, bias=True)
+            (act0): ReLU()
+            (linear1): Linear(in_features=192, out_features=192, bias=True)
+          )
+        )
+        (global_mlp): LinearMLP(
+          (mlp): Sequential(
+            (linear0): Linear(in_features=192, out_features=128, bias=True)
+            (act0): ReLU()
+            (linear1): Linear(in_features=128, out_features=1, bias=True)
+          )
+        )
+      )
+    )
+  )
+)
+OpenCabinetDrawer_1000_link_0-v0 - INFO - 2022-04-16 23:47:51 - Rollout state dim: {'pointcloud': {'rgb': (8, 1200, 3), 'xyz': (8, 1200, 3), 'seg': (8, 1200, 3)}, 'state': (8, 38)}, action dim: 8

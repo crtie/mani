@@ -2,7 +2,7 @@ from .compression import compress_size, compress_image
 from .concat import (concat_seq, concat_list, concat_list_of_array, concat_dict_of_list_array,
                      stack_list_of_array, stack_dict_of_list_array, repeat_interleave)
 from .converter import (astype, to_torch, to_np, iter_cast, list_cast, tuple_cast, dict_to_seq, seq_to_dict,
-                        dict_to_str, number_to_str)
+                        dict_to_str, number_to_str,merge_dict)
 from .dict_array import (recursive_init_dict_array, map_func_to_dict_array, sample_element_in_dict_array,
                          assign_single_element_in_dict_array, store_dict_array_to_h5, split_in_dict_array)
 from .dict_utils import update_dict, update_dict_with_begin_keys

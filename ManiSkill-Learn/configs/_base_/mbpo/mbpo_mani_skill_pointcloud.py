@@ -1,4 +1,4 @@
-_base_ = ['./sac.py']
+_base_ = ['./mbpo.py']
 stack_frame = 1
 num_heads = 4
 
@@ -14,8 +14,9 @@ env_cfg = dict(
 
 agent = dict(
     type='MBPO',
-    batch_size=256,
+    batch_size=512,
     gamma=0.95,
+    max_iter_use_real_data=1000,
     policy_cfg=dict(
         type='ContinuousPolicy',
         policy_head_cfg=dict(
@@ -173,10 +174,10 @@ agent = dict(
     ),
     #! 照猫画虎写个model
     model_cfg=dict(
-        type='pointnet_transformer_model',
+        type='Pointnet_transformer_model',
         num_heads=1,
         nn_cfg=dict(
-            type='PointNetWithInstanceInfoV0',
+            type='PointNetWorldModel',
             stack_frame=stack_frame,
             num_objs='num_objs',
             pcd_pn_cfg=dict(
@@ -184,7 +185,7 @@ agent = dict(
                 conv_cfg=dict(
                     type='ConvMLP',
                     norm_cfg=None,
-                    mlp_spec=['agent_shape + pcd_xyz_rgb_channel', 192, 192],
+                    mlp_spec=['agent_shape + pcd_xyz_rgb_channel + action_shape', 192, 192],
                     #! 输入是agent state和点云(xyz+rgb+seg)
                     bias='auto',
                     inactivated_output=True,
@@ -204,7 +205,7 @@ agent = dict(
             state_mlp_cfg=dict(
                 type='LinearMLP',
                 norm_cfg=None,
-                mlp_spec=['agent_shape ', 192, 192],
+                mlp_spec=['agent_shape + action_shape ', 192, 192],
                 bias='auto',
                 inactivated_output=True,
                 linear_init_cfg=dict(type='xavier_init', gain=1, bias=0),
@@ -238,10 +239,18 @@ agent = dict(
                 num_blocks=2,
             ),
             #! pooling 出来是一个192维的全局feature
-            final_mlp_cfg=dict(
+            final_mlp1_cfg=dict(
                 type='LinearMLP',
                 norm_cfg=None,
-                mlp_spec=[192, 128, 1],
+                mlp_spec=['agent_shape + pcd_all_channel + action_shape + 192', 128, 3],
+                bias='auto',
+                inactivated_output=True,
+                linear_init_cfg=dict(type='xavier_init', gain=1, bias=0),
+            ),
+            final_mlp2_cfg=dict(
+                type='LinearMLP',
+                norm_cfg=None,
+                mlp_spec=['agent_shape + action_shape + 192', 128, 'agent_shape +1 '],
                 bias='auto',
                 inactivated_output=True,
                 linear_init_cfg=dict(type='xavier_init', gain=1, bias=0),
@@ -255,12 +264,12 @@ agent = dict(
 
 replay_cfg = dict(
     type='ReplayMemory',
-    capacity=800000,
+    capacity=1000000,
 )
 
 replay_model_cfg = dict(
     type='ReplayMemory',
-    capacity=500000,
+    capacity=1000000,
 )
 
 train_mfrl_cfg = dict(
@@ -284,10 +293,10 @@ rollout_cfg = dict(
 eval_cfg = dict(
     type='BatchEvaluation',
     num=100,
-    num_procs=2,
+    num_procs=32,
     use_hidden_state=False,
     start_state=None,
     save_traj=False,
-    save_video=False,
+    save_video=True,
     use_log=True,
 )

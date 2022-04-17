@@ -148,3 +148,42 @@ def number_to_str(x, num):
         print(type(x))
         raise TypeError(f"Type of {x} is not a number")
 
+def merge_dict(dict1,dict2,permutation):
+    # ret={}
+    # xyz=np.concatenate((dict1['obs']['pointcloud']['xyz'],dict2['obs']['pointcloud']['xyz']),axis=0)
+    # xyz=xyz[permutation]
+    # rgb=np.concatenate((dict1['obs']['pointcloud']['rgb'],dict2['obs']['pointcloud']['rgb']),axis=0)
+    # rgb=rgb[permutation]
+    # seg=np.concatenate((dict1['obs']['pointcloud']['seg'],dict2['obs']['pointcloud']['seg']),axis=0)
+    # seg=seg[permutation]
+    # state=np.concatenate((dict1['obs']['state'],dict2['obs']['state']),axis=0)
+    # state=state[permutation]
+    # ret['obs']={'pointcloud':{'xyz':xyz,'rgb':rgb,'seg':seg},'state':state}
+    # print(np.concatenate((dict1['actions'],dict2['actions']),axis=0).shape)
+    # ret['actions']=np.concatenate((dict1['actions'],dict2['actions']),axis=0)
+    # ret['actions']=ret['actions'][permutation]
+    # ret['rewards']=np.concatenate((dict1['rewards'],dict2['rewards']),axis=0)
+    # ret['rewards']=ret['rewards'][permutation]
+
+    # xyz=np.concatenate((dict1['next_obs']['pointcloud']['xyz'],dict2['next_obs']['pointcloud']['xyz']),axis=0)
+    # xyz=xyz[permutation]
+    # rgb=np.concatenate((dict1['next_obs']['pointcloud']['rgb'],dict2['next_obs']['pointcloud']['rgb']),axis=0)
+    # rgb=rgb[permutation]
+    # seg=np.concatenate((dict1['next_obs']['pointcloud']['seg'],dict2['next_obs']['pointcloud']['seg']),axis=0)
+    # seg=seg[permutation]
+    # state=np.concatenate((dict1['next_obs']['state'],dict2['next_obs']['state']),axis=0)
+    # state=state[permutation]
+    # ret['next_obs']={'pointcloud':{'xyz':xyz,'rgb':rgb,'seg':seg},'state':state}
+
+
+    # ret['dones']=np.concatenate((dict1['dones'],dict2['dones']),axis=0)
+    # ret['episode_dones']=np.concatenate((dict1['episode_dones'],dict2['episode_dones']),axis=0)
+
+
+    if is_dict(dict1):
+        # print(dict1.keys(),dict2.keys())
+        return {k: merge_dict(dict1[k],dict2[k],permutation) for k in dict1.keys()}
+    else:
+        ret=np.concatenate((dict1,dict2),axis=0)
+        ret=ret[permutation]
+    return ret

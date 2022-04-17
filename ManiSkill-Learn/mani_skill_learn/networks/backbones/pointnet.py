@@ -156,3 +156,92 @@ class PointNetWithInstanceInfoV0(PointBackbone):
         x = self.global_mlp(global_feature)
         # print(x)
         return x
+
+
+@BACKBONES.register_module()
+class PointNetWorldModel(PointBackbone):
+    def __init__(self, pcd_pn_cfg, state_mlp_cfg, final_mlp1_cfg, final_mlp2_cfg, stack_frame, num_objs, transformer_cfg=None):
+        """
+        PointNet with instance segmentation masks.
+        There is one MLP that processes the agent state, and (num_obj + 2) PointNets that process background points
+        (where all masks = 0), points from some objects (where some mask = 1), and the entire point cloud, respectively.
+
+        For points of the same object, the same PointNet processes each frame and concatenates the
+        representations from all frames to form the representation of that point type.
+
+        Finally representations from the state and all types of points are passed through final attention
+        to output a vector of representation.
+
+        :param pcd_pn_cfg: configuration for building point feature extractor
+        :param state_mlp_cfg: configuration for building the MLP that processes the agent state vector
+        :param stack_frame: num of the frame in the input
+        :param num_objs: dimension of the segmentation mask
+        :param transformer_cfg: if use transformer to aggregate the features from different objects
+        """
+        super(PointNetWorldModel, self).__init__()
+
+        self.pcd_pns = nn.ModuleList([build_backbone(pcd_pn_cfg) for i in range(num_objs + 2)])
+        self.attn = build_backbone(transformer_cfg) if transformer_cfg is not None else None
+        self.state_mlp = build_backbone(state_mlp_cfg)
+        self.global_mlp1 = build_backbone(final_mlp1_cfg)
+        self.global_mlp2 = build_backbone(final_mlp2_cfg)
+
+        self.stack_frame = stack_frame
+        self.num_objs = num_objs
+        assert self.num_objs > 0
+
+    def forward_raw(self, pcd, state):
+        """
+        :param pcd: point cloud
+                xyz: shape (l, n_points, 3)
+                rgb: shape (l, n_points, 3)
+                seg:  shape (l, n_points, n_seg)
+        :param state: shape (l, state_shape) state and other information of robot
+        :return: [B,F] [batch size, final output]
+        """
+        #! state是把state和action拼起来
+        assert isinstance(pcd, dict) and 'xyz' in pcd and 'seg' in pcd
+        pcd = pcd.copy()
+        seg = pcd.pop('seg')  # [B, N, NO]
+        xyz = pcd['xyz']  # [B, N, 3]
+        N=xyz.shape[1]
+        obj_masks = [1. - (torch.sum(seg, dim=-1) > 0.5).type(xyz.dtype)]  # [B, N], the background mask
+        for i in range(self.num_objs):
+            obj_masks.append(seg[..., i])
+        obj_masks.append(torch.ones_like(seg[..., 0])) # the entire point cloud
+
+        obj_features = [] 
+        obj_features.append(self.state_mlp(state))
+        for i in range(len(obj_masks)):
+            obj_mask = obj_masks[i]
+            obj_features.append(self.pcd_pns[i].forward_raw(pcd, state, obj_mask))  # [B, F]
+            # print('X', obj_features[-1].shape)
+        if self.attn is not None:
+            obj_features = torch.stack(obj_features, dim=-2)  # [B, NO + 3, F]
+            new_seg = torch.stack(obj_masks, dim=-1)  # [B, N, NO + 2]
+            non_empty = (new_seg > 0.5).any(1).float()  # [B, NO + 2]
+            non_empty = torch.cat([torch.ones_like(non_empty[:,:1]), non_empty], dim=-1) # [B, NO + 3]
+            obj_attn_mask = non_empty[..., None] * non_empty[:, None]  # [B, NO + 3, NO + 3]           
+            global_feature = self.attn(obj_features, obj_attn_mask)  # [B, F]
+        else:
+            global_feature = torch.cat(obj_features, dim=-1)  # [B, (NO + 3) * F]
+        # print('Y', global_feature.shape)
+
+        #! mlp_spec=['agent_shape + pcd_all_channel + action_shape + 192', 128, 3],
+        global_mlp1_input=torch.cat((pcd['xyz'],pcd['rgb'],seg,state.unsqueeze(1).repeat(1,N,1),global_feature.unsqueeze(1).repeat(1,N,1)),dim=-1)
+        #! batch * num_points * 9
+        delta_x = self.global_mlp1(global_mlp1_input)
+        # print(delta_x.shape)
+        #! b * n * 3
+
+        #! mlp_spec=['agent_shape + action_shape + 192', 128, 'agent_shape +1 '],
+        global_mlp2_input=torch.cat((global_feature,state),dim=1)
+        next_state_and_reward=self.global_mlp2(global_mlp2_input)
+        ret={}
+        ret['pointcloud']={}
+        ret['pointcloud']['xyz']=xyz+delta_x
+        ret['pointcloud']['rgb']=pcd['rgb']
+        ret['pointcloud']['seg']=seg
+        ret['state']=next_state_and_reward[:,1:]
+        ret['rewards']=next_state_and_reward[:,0]
+        return ret

@@ -7,13 +7,12 @@ from ..utils import replace_placeholder_with_args, get_kwargs_from_shape, combin
 
 
 @MODELNETWORKS.register_module()
-class Pointnet_trandformer_model(ExtendedModule):
+class Pointnet_transformer_model(ExtendedModule):
     def __init__(self, nn_cfg, obs_shape=None, action_shape=None, num_heads=1):
-        super(Pointnet_trandformer_model, self).__init__()
+        super(Pointnet_transformer_model, self).__init__()
         self.values = nn.ModuleList()
         replaceable_kwargs = get_kwargs_from_shape(obs_shape, action_shape)
         nn_cfg = replace_placeholder_with_args(nn_cfg, **replaceable_kwargs)
-        self.output_dim=obs_shape+1   #! state_size+reward size
         for i in range(num_heads):
             self.values.append(build_backbone(nn_cfg))
 
@@ -25,9 +24,7 @@ class Pointnet_trandformer_model(ExtendedModule):
 
     def forward(self, state, action=None):
         inputs = combine_obs_with_action(state, action)
-        ret = [value(inputs) for value in self.values]
-        ret=torch.stack(ret,0)
-        #! ret of the shape ensemble*batch*(state size+rew size)
-        #! 前state+rew 维
-        #print(mean.shape,logvar.shape)
+        ret = [value(inputs) for value in self.values][0]
+
+        #print(torch.cat(ret, dim=-1).shape)
         return ret
