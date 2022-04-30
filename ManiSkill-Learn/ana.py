@@ -1,10 +1,13 @@
+
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import torch
+print("hello")
 import sys
 sys.path.append("/home/ruichentie/mani/ChamferDistancePytorch")
 import chamfer3D.dist_chamfer_3D
+
 obs0=np.loadtxt('obs0.txt')
 obs1=np.loadtxt('obs1.txt')
 obs2=np.loadtxt('obs2.txt')

@@ -88,7 +88,7 @@ class EveryNSteps:
 
 
 def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_policy, work_dir, total_steps=1000000, warm_steps=10000,
-             n_steps=1, n_updates=1, n_checkpoint=None, n_eval=None, init_replay_buffers=None,
+             n_steps=1, n_updates=1,m_steps=1, n_checkpoint=None, n_eval=None, init_replay_buffers=None,
              init_replay_with_split=None, eval_cfg=None, replicate_init_buffer=1, num_trajs_per_demo_file=-1):
     logger = get_logger(env_cfg.env_name)
 
@@ -157,7 +157,7 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_po
         episode_statistics.push(
             trajectories['rewards'], trajectories['episode_dones'])
         replay_env.push_batch(**trajectories)
-        vial=1
+        vial=0
         if vial:
             with torch.no_grad():
                 trajectories = to_torch(
@@ -229,7 +229,7 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_po
             if(is_mbrl):
                 print(f"model buffer size is {len(replay_model)}")
             while num_done < n_steps and not (on_policy and num_done > 0):
-                for _ in range (8):
+                for _ in range (m_steps):
                     tmp_time = time.time()
                     trajectories, infos = rollout.forward_with_policy(agent.policy, n_steps, whole_episode=on_policy)
                     episode_statistics.push(trajectories['rewards'], trajectories['episode_dones'])

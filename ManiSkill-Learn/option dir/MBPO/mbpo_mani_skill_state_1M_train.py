@@ -1,13 +1,13 @@
 agent = dict(
     type='MBPO',
-    batch_size=512,
+    batch_size=256,
     gamma=0.95,
     update_coeff=0.005,
     alpha=0.2,
     target_update_interval=1,
     automatic_alpha_tuning=True,
     alpha_optim_cfg=dict(type='Adam', lr=0.0003),
-    max_iter_use_real_data=1000,
+    max_iter_use_real_data=500,
     policy_cfg=dict(
         type='ContinuousPolicy',
         policy_head_cfg=dict(
@@ -217,9 +217,10 @@ train_mfrl_cfg = dict(
     total_steps=2000000,
     warm_steps=4000,
     n_eval=2000000,
-    n_checkpoint=100000,
+    n_checkpoint=20000,
     n_steps=8,
-    n_updates=4)
+    n_updates=8,
+    m_steps=2)
 rollout_cfg = dict(
     type='BatchRollout',
     use_cost=False,
@@ -232,11 +233,11 @@ rollout_cfg = dict(
         obs_mode='pointcloud',
         reward_type='dense',
         stack_frame=1,
-        env_name='OpenCabinetDrawer_1000_link_0-v0'))
+        env_name='OpenCabinetDrawer-v0'))
 eval_cfg = dict(
     type='BatchEvaluation',
     num=100,
-    num_procs=2,
+    num_procs=8,
     use_hidden_state=False,
     start_state=None,
     save_traj=False,
@@ -248,7 +249,7 @@ eval_cfg = dict(
         obs_mode='pointcloud',
         reward_type='dense',
         stack_frame=1,
-        env_name='OpenCabinetDrawer_1000_link_0-v0'))
+        env_name='OpenCabinetDrawer-v0'))
 stack_frame = 1
 num_heads = 4
 env_cfg = dict(
@@ -257,8 +258,7 @@ env_cfg = dict(
     obs_mode='pointcloud',
     reward_type='dense',
     stack_frame=1,
-    env_name='OpenCabinetDrawer_1000_link_0-v0')
-replay_cfg = dict(type='ReplayMemory', capacity=1000000)
-replay_model_cfg = dict(type='ReplayMemory', capacity=1000000)
+    env_name='OpenCabinetDrawer-v0')
+replay_cfg = dict(type='ReplayMemory', capacity=500000)
+replay_model_cfg = dict(type='ReplayMemory', capacity=500000)
 work_dir = 'option dir/MBPO'
-resume_from = 'work_dirs/OpenCabinetDrawer_1000_link_0-v0/MBPO/models/model_900000.ckpt'
