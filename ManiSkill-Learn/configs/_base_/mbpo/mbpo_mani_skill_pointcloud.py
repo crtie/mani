@@ -16,7 +16,7 @@ agent = dict(
     type='MBPO',
     batch_size=256,
     gamma=0.95,
-    max_iter_use_real_data=500,
+    max_iter_use_real_data=1000,
     policy_cfg=dict(
         type='ContinuousPolicy',
         policy_head_cfg=dict(
@@ -276,10 +276,10 @@ train_mfrl_cfg = dict(
     total_steps=2000000,
     warm_steps=4000,
     n_eval=2000000,
-    n_checkpoint=20000,
+    n_checkpoint=100000,
     n_steps=8,
-    n_updates=8,
-    m_steps=2,
+    n_updates=20,
+    m_steps=8,
 )
 
 rollout_cfg = dict(
@@ -297,6 +297,6 @@ eval_cfg = dict(
     use_hidden_state=False,
     start_state=None,
     save_traj=False,
-    save_video=True,
+    save_video=False,
     use_log=True,
 )

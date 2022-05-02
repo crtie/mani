@@ -232,6 +232,7 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_po
                 for _ in range (m_steps):
                     tmp_time = time.time()
                     trajectories, infos = rollout.forward_with_policy(agent.policy, n_steps, whole_episode=on_policy)
+                    #! 可以把reward高的点扔到新的buffer里
                     episode_statistics.push(trajectories['rewards'], trajectories['episode_dones'])
                     collect_sample_time += time.time() - tmp_time
 
