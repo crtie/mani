@@ -149,6 +149,7 @@ class MBPO(BaseAgent):
             sampled_batch2 = memory2.sample(self.batch_size-int(self.batch_size*alpha))
         else:
             alpha=min(0.8,float(iter/self.max_iter_use_real_data))
+            alpha=0
             #print(f'{alpha*100}percentage data are collected from model buffer')
             sampled_batch1 = memory1.sample(max(1,int(self.batch_size*alpha)))
             sampled_batch2=memory2.sample(self.batch_size-max(1,int(self.batch_size*alpha)))

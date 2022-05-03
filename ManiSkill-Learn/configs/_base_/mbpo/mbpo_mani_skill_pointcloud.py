@@ -278,8 +278,8 @@ train_mfrl_cfg = dict(
     n_eval=2000000,
     n_checkpoint=100000,
     n_steps=8,
-    n_updates=20,
-    m_steps=8,
+    n_updates=4,
+    m_steps=1,
 )
 
 rollout_cfg = dict(

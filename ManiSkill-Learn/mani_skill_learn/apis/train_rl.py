@@ -240,8 +240,8 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_po
                     cnt_episodes += np.sum(trajectories['episode_dones'].astype(np.int32))
                     replay_env.push_batch(**trajectories)
                     steps += n_steps
-                    if(is_mbrl):
-                        agent.model_rollout(replay_env,replay_model)
+                    # if(is_mbrl):
+                    #     agent.model_rollout(replay_env,replay_model)
 
                 for i in range(n_updates):
                     total_updates += 1
