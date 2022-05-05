@@ -143,16 +143,31 @@ class MBPO(BaseAgent):
         rollout['episode_dones'] = np.zeros_like(pred_reward.cpu())
         replay_model.push_batch(**rollout)
 
-    def update_parameters(self, memory1,updates,memory2=None,alpha=0.05,iter=0):
+    def update_parameters(self, memory1,updates,memory2=None,expert_replay=None ,alpha=0.05,iter=0):
+        num_expert_replay_is_not_null=0
+        if expert_replay is not None:
+            for env_id in expert_replay.keys():
+                if(len(expert_replay[env_id])>0):
+                    num_expert_replay_is_not_null+=1
+
         if(iter==0): #! static rate
             sampled_batch1 = memory1.sample(int(self.batch_size*alpha))
             sampled_batch2 = memory2.sample(self.batch_size-int(self.batch_size*alpha))
         else:
-            alpha=min(0.8,float(iter/self.max_iter_use_real_data))
+
+            beta_each = 0.01 if num_expert_replay_is_not_null>0 else 0
+            alpha=min(0.8,float(iter/self.max_iter_use_real_data))*(1-beta_each*num_expert_replay_is_not_null)
             alpha=0
+            # print(f'beta each is {beta_each}')
+            # sampled_batch3=[]
+            # for env_id in expert_replay.keys():
+            #     if(len(expert_replay[env_id])>0):
+            #         sampled_batch3.append(expert_replay[env_id].sample(max(1,int(self.batch_size*beta_each))))
+
             #print(f'{alpha*100}percentage data are collected from model buffer')
             sampled_batch1 = memory1.sample(max(1,int(self.batch_size*alpha)))
-            sampled_batch2=memory2.sample(self.batch_size-max(1,int(self.batch_size*alpha)))
+            # sampled_batch2 = memory2.sample(self.batch_size-max(1,int(self.batch_size*alpha)-max(1,int(self.batch_size*beta_each*num_expert_replay_is_not_null))))
+            sampled_batch2 = memory2.sample(self.batch_size-max(1,int(self.batch_size*alpha)))
         sampled_batch={}
         for key in sampled_batch1:
             if not isinstance(sampled_batch1[key], dict) and sampled_batch1[key].ndim == 1:
@@ -160,11 +175,19 @@ class MBPO(BaseAgent):
         for key in sampled_batch2:
             if not isinstance(sampled_batch2[key], dict) and sampled_batch2[key].ndim == 1:
                 sampled_batch2[key] = sampled_batch2[key][..., None]
+        
         permutation = list(np.random.permutation(self.batch_size))
         # for key in sampled_batch:
         #     if not isinstance(sampled_batch[key], dict) and sampled_batch[key].ndim == 1:
         #         sampled_batch[key] = sampled_batch[key][..., None]
         sampled_batch=merge_dict(sampled_batch1,sampled_batch2,permutation)
+        # permutation= range(self.batch_size)
+        # for i in range(len(sampled_batch3)):
+        #     for key in sampled_batch3[i]:
+        #         if not isinstance(sampled_batch3[i][key], dict) and sampled_batch3[i][key].ndim == 1:
+        #             sampled_batch3[i][key] = sampled_batch3[i][key][..., None]
+        #     sampled_batch=merge_dict(sampled_batch,sampled_batch3[i],permutation)
+
 
 
         sampled_batch = to_torch(

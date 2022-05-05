@@ -6,7 +6,7 @@ import re
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
-
+from mani_skill_learn.env.builder import build_replay
 import numpy as np
 
 from mani_skill_learn.env import ReplayMemory
@@ -14,6 +14,7 @@ from mani_skill_learn.env import save_eval_statistics
 from mani_skill_learn.utils.data import dict_to_str, get_shape, is_seq_of
 from mani_skill_learn.utils.meta import get_logger, get_total_memory, td_format
 from mani_skill_learn.utils.data import to_torch,to_np,merge_dict
+from mani_skill_learn.utils.data import dict_to_str, get_shape, is_seq_of, concat_list_of_array
 from mani_skill_learn.utils.torch import TensorboardLogger, save_checkpoint
 from mani_skill_learn.utils.math import split_num
 from torch.utils.tensorboard import SummaryWriter
@@ -87,15 +88,24 @@ class EveryNSteps:
         return int(x // self.interval) * self.interval
 
 
-def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_policy, work_dir, total_steps=1000000, warm_steps=10000,
+def train_rl(agent, rollout, evaluator, env_cfg, replay_env , replay_model ,expert_replay, on_policy, work_dir, total_steps=1000000, warm_steps=10000,
              n_steps=1, n_updates=1,m_steps=1, n_checkpoint=None, n_eval=None, init_replay_buffers=None,
-             init_replay_with_split=None, eval_cfg=None, replicate_init_buffer=1, num_trajs_per_demo_file=-1):
+             init_replay_with_split=None, expert_replay_split_cfg = None,eval_cfg=None, replicate_init_buffer=1, split_expert_buffer=False ,num_trajs_per_demo_file=-1):
     logger = get_logger(env_cfg.env_name)
 
     import torch
     from mani_skill_learn.utils.torch import get_cuda_info
     replay_env.reset()
     #! 只有mbrl才有replay_model
+    env_ids=[str(i) for i in range (1000,1083)]
+    split_expert_buffer=True
+    for env_id in env_ids:
+        expert_replay[env_id]=build_replay(expert_replay_split_cfg)
+        expert_replay[env_id].reset()
+
+    trajs_split = []
+    for _ in range(n_steps):
+        trajs_split.append([])
 
     if (replay_model!=None):
         is_mbrl=1
@@ -228,10 +238,30 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_po
             print(f"env buffer size is {len(replay_env)}")
             if(is_mbrl):
                 print(f"model buffer size is {len(replay_model)}")
+            for env_id in env_ids:
+                if(len(expert_replay[env_id])>0):print(f'env {env_id} have {len(expert_replay[env_id])} points')
             while num_done < n_steps and not (on_policy and num_done > 0):
                 for _ in range (m_steps):
                     tmp_time = time.time()
-                    trajectories, infos = rollout.forward_with_policy(agent.policy, n_steps, whole_episode=on_policy)
+                    recent_ids = rollout.recent_id()
+                    trajectories, infos = rollout.forward_with_policy(agent.policy, n_steps, whole_episode=on_policy, merge= not(split_expert_buffer))
+
+                    for k in range(n_steps):
+                        trajs_split[k].append(trajectories[k])
+                        trajectories[k]['ids']=recent_ids[k]
+                        if trajectories[k]['dones']==1:
+                            success_traj = concat_list_of_array(trajs_split[k])
+                            selected_id = recent_ids[k]
+                            
+                            expert_replay[str(selected_id)].push_batch(**success_traj)
+                        if trajectories[k]['episode_dones']==1:
+                            trajs_split[k]=[]
+                    trajectories = concat_list_of_array(trajectories)
+                    trajectories['ids'] = np.array(trajectories['ids'])
+                    infos = concat_list_of_array(infos)
+
+
+
                     #! 可以把reward高的点扔到新的buffer里
                     episode_statistics.push(trajectories['rewards'], trajectories['episode_dones'])
                     collect_sample_time += time.time() - tmp_time
@@ -243,15 +273,17 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env, replay_model, on_po
                     # if(is_mbrl):
                     #     agent.model_rollout(replay_env,replay_model)
 
+
+
                 for i in range(n_updates):
                     total_updates += 1
                     tmp_time = time.time()
                     if(is_mbrl):
                         tf_logs.push(
-                            **agent.update_parameters(replay_model, memory2=replay_env,updates=total_updates,iter=iteration_id))
+                            **agent.update_parameters(replay_model, memory2=replay_env,expert_replay=expert_replay, updates=total_updates,iter=iteration_id))
                     else:
                         tf_logs.push(
-                            **agent.update_parameters(replay_env, updates=total_updates))
+                            **agent.update_parameters(replay_env,expert_replay=expert_replay, updates=total_updates))
                     update_time += time.time() - tmp_time
 
             total_episodes += cnt_episodes

@@ -24,6 +24,9 @@ def save_eval_statistics(folder, lengths, rewards, finishes, logger=None):
     if folder is not None:
         table = [['length', 'reward', 'finish']]
         table += [[number_to_str(__, 2) for __ in _] for _ in zip(lengths, rewards, finishes)]
+        os.makedirs(folder)
+        f = open(folder+'/statistics.csv','w')
+        f.close()
         dump(table, osp.join(folder, 'statistics.csv'))
 
 

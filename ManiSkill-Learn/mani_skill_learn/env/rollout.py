@@ -39,6 +39,9 @@ class Rollout:
     def random_action(self):
         return self.env.action_space.sample()
 
+    def cur_id(self):
+        return self.env.selected_id
+
     def forward_with_reset(self, states=None, actions=None):
         """
         :param states: [n, m] n different env states
@@ -165,6 +168,11 @@ class BatchRollout:
         for i in range(self.n):
             self.workers[i].get_attr('recent_obs')
         return stack_list_of_array([self.workers[i].get() for i in range(self.n)])
+
+    def recent_id(self):
+        for i in range(self.n):
+            self.workers[i].call('cur_id')
+        return np.array([self.workers[i].get() for i in range(self.n)])
 
     def random_action(self):
         for i in range(self.n):

@@ -261,7 +261,6 @@ agent = dict(
 )
 
 
-
 replay_cfg = dict(
     type='ReplayMemory',
     capacity=500000,
@@ -272,11 +271,18 @@ replay_model_cfg = dict(
     capacity=500000,
 )
 
+
+expert_replay_split_cfg = dict(
+    type='ReplayMemory',
+    capacity=30000,
+)
+
+
 train_mfrl_cfg = dict(
     total_steps=2000000,
     warm_steps=4000,
-    n_eval=2000000,
-    n_checkpoint=100000,
+    n_eval=200000,
+    n_checkpoint=20000,
     n_steps=8,
     n_updates=4,
     m_steps=1,

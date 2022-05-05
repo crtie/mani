@@ -216,8 +216,8 @@ train_mfrl_cfg = dict(
     on_policy=False,
     total_steps=2000000,
     warm_steps=4000,
-    n_eval=2000000,
-    n_checkpoint=100000,
+    n_eval=200000,
+    n_checkpoint=20000,
     n_steps=8,
     n_updates=4,
     m_steps=1)
@@ -261,4 +261,6 @@ env_cfg = dict(
     env_name='OpenCabinetDrawer-v0')
 replay_cfg = dict(type='ReplayMemory', capacity=500000)
 replay_model_cfg = dict(type='ReplayMemory', capacity=500000)
+expert_replay_split_cfg = dict(type='ReplayMemory', capacity=30000)
+resume_from = 'MBPO.ckpt'
 work_dir = './work_dirs/OpenCabinetDrawer-v0/MBPO'

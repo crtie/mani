@@ -11,7 +11,7 @@ import torch.nn.functional as F
 
 from mani_skill_learn.networks import build_model, hard_update, soft_update
 from mani_skill_learn.optimizers import build_optimizer
-from mani_skill_learn.utils.data import to_torch
+from mani_skill_learn.utils.data import to_torch, merge_dict
 from ..builder import MFRL
 from mani_skill_learn.utils.torch import BaseAgent
 
@@ -54,8 +54,43 @@ class SAC(BaseAgent):
         self.policy_optim = build_optimizer(self.policy, policy_optim_cfg)
         self.critic_optim = build_optimizer(self.critic, value_optim_cfg)
 
-    def update_parameters(self, memory, updates):
-        sampled_batch = memory.sample(self.batch_size)
+    def update_parameters(self, memory, updates,expert_replay=None, ):
+
+        num_expert_replay_is_not_null=0
+        if expert_replay is not None:
+            for env_id in expert_replay.keys():
+                if(len(expert_replay[env_id])>0):
+                    num_expert_replay_is_not_null+=1
+
+            beta_each = 0.01 if num_expert_replay_is_not_null>0 else 0
+            alpha=0
+            sampled_batch3=[]
+            for env_id in expert_replay.keys():
+                if(len(expert_replay[env_id])>0):
+                    sampled_batch3.append(expert_replay[env_id].sample(max(1,int(self.batch_size*beta_each))))
+
+            sampled_batch1 = memory.sample(max(1,int(self.batch_size*alpha)))
+            sampled_batch2 = memory.sample(self.batch_size-max(1,int(self.batch_size*alpha)-max(1,int(self.batch_size*beta_each*num_expert_replay_is_not_null))))
+        sampled_batch={}
+        for key in sampled_batch1:
+            if not isinstance(sampled_batch1[key], dict) and sampled_batch1[key].ndim == 1:
+                sampled_batch1[key] = sampled_batch1[key][..., None]
+        for key in sampled_batch2:
+            if not isinstance(sampled_batch2[key], dict) and sampled_batch2[key].ndim == 1:
+                sampled_batch2[key] = sampled_batch2[key][..., None]
+        
+        permutation = list(np.random.permutation(self.batch_size))
+        # for key in sampled_batch:
+        #     if not isinstance(sampled_batch[key], dict) and sampled_batch[key].ndim == 1:
+        #         sampled_batch[key] = sampled_batch[key][..., None]
+        sampled_batch=merge_dict(sampled_batch1,sampled_batch2,permutation)
+        permutation= range(self.batch_size)
+        for i in range(len(sampled_batch3)):
+            for key in sampled_batch3[i]:
+                if not isinstance(sampled_batch3[i][key], dict) and sampled_batch3[i][key].ndim == 1:
+                    sampled_batch3[i][key] = sampled_batch3[i][key][..., None]
+            sampled_batch=merge_dict(sampled_batch,sampled_batch3[i],permutation)
+
         sampled_batch = to_torch(sampled_batch, dtype='float32', device=self.device, non_blocking=True)
         for key in sampled_batch:
             if not isinstance(sampled_batch[key], dict) and sampled_batch[key].ndim == 1:

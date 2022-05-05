@@ -11,7 +11,7 @@ os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["NUMEXPR_MAX_THREADS"] = "32"
-os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6,7"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6,7"
 def init_torch(args):
     import torch
     torch.utils.backcompat.broadcast_warning.enabled = True
@@ -123,13 +123,13 @@ def main_mfrl_brl(cfg, args, rollout, evaluator, logger):
 
     if not args.evaluation:
         replay_env = build_replay(cfg.replay_cfg)
+        expert_replay = dict()
         # print(agent)
         if (cfg.agent.type in MBRL):
             replay_model = build_replay(cfg.replay_model_cfg)
         else:
             replay_model=None
-        train_rl(agent, rollout, evaluator, cfg.env_cfg, replay_env, replay_model, work_dir=cfg.work_dir, eval_cfg=cfg.eval_cfg,
-                 **cfg.train_mfrl_cfg)
+        train_rl(agent, rollout, evaluator, cfg.env_cfg, replay_env, replay_model,expert_replay, work_dir=cfg.work_dir ,eval_cfg=cfg.eval_cfg,expert_replay_split_cfg=cfg.expert_replay_split_cfg, **cfg.train_mfrl_cfg)
     else:
         test_name = args.test_name if args.test_name is not None else 'test'
         eval_dir = osp.join(cfg.work_dir, test_name)
