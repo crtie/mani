@@ -1,1 +1,1 @@
-_base_ = ['../_base_/mbpo/mbpo_mani_skill_pointcloud.py']
+_base_ = ['../_base_/mbpo/mbpo_pn.py']

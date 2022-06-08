@@ -85,17 +85,24 @@ class ReplayMemory:
             init_buffers = [load_h5s_as_list_dict_array(_) for _ in init_buffers]
         if isinstance(init_buffers, dict):
             init_buffers = [init_buffers]
-
         print('Num of datasets', len(init_buffers))
         for _ in range(replicate_init_buffer):
             cnt = 0
             for init_buffer in init_buffers:
-                for item in init_buffer:
-                    if cnt >= num_trajs_per_demo_file and num_trajs_per_demo_file != -1:
-                        break
-                    item = {key: item[key] for key in buffer_keys}
-                    self.push_batch(**item)
-                    cnt += 1
+                print(len(init_buffer))
+                # for item in init_buffer:
+                #     if cnt >= num_trajs_per_demo_file and num_trajs_per_demo_file != -1:
+                #         break
+                #     if isinstance(item,dict):
+                #         print(item.keys())
+                #     else:
+                #         print(item.shape,item[0])
+                    # item = {key: item[key] for key in buffer_keys}
+                    # self.push_batch(**item)
+                    # cnt += 1
+                item = {'actions':init_buffer[0],'dones':init_buffer[1],'episode_dones':init_buffer[2],'obs':init_buffer[4],'next_obs':init_buffer[3],\
+                'rewards':init_buffer[5]}
+                self.push_batch(**item)
         print(f'Num of buffers {len(init_buffers)}, Total steps {self.running_count}')
 
 

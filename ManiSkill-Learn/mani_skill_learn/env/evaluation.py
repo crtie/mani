@@ -14,32 +14,36 @@ from mani_skill_learn.utils.data import (flatten_dict, to_np, compress_size, dic
 from mani_skill_learn.utils.meta import get_logger, get_total_memory, flush_print
 from .builder import EVALUATIONS
 
-
-def save_eval_statistics(folder, lengths, rewards, finishes, logger=None):
+def save_eval_statistics(folder, lengths, rewards, finishes, selected_ids=None, target_indexes=None, logger=None):
     if logger is not None:
         logger.info(f'Num of trails: {len(lengths):.2f}, '
                     f'Length: {np.mean(lengths):.2f}+/-{np.std(lengths):.2f}, '
                     f'Reward: {np.mean(rewards):.2f}+/-{np.std(rewards):.2f}, '
                     f'Success or Early Stop Rate: {np.mean(finishes):.2f}')
     if folder is not None:
-        table = [['length', 'reward', 'finish']]
-        table += [[number_to_str(__, 2) for __ in _] for _ in zip(lengths, rewards, finishes)]
-        os.makedirs(folder)
-        f = open(folder+'/statistics.csv','w')
+        if selected_ids is None or target_indexes is None:
+            table = [['length', 'reward', 'finish']]
+            table += [[number_to_str(__, 2) for __ in _] for _ in zip(lengths, rewards, finishes)]
+        else:
+            table = [['env_id', 'target', 'length', 'reward', 'finish']]
+            table += [[number_to_str(__, 2) for __ in _] for _ in zip(selected_ids, target_indexes, lengths, rewards, finishes)]
+        os.makedirs(folder, exist_ok=True)
+        f = open(folder + "/statistics.csv", 'w')
         f.close()
         dump(table, osp.join(folder, 'statistics.csv'))
-
 
 @EVALUATIONS.register_module()
 class Evaluation:
     def __init__(self, env_cfg, worker_id=None, save_traj=True, save_video=True, use_hidden_state=False, horizon=None,
-                 use_log=True, log_every_step=False, sample_mode='eval', **kwargs):
+                 use_log=True, log_every_step=False, sample_mode='eval', save_last_state=False, save_state_path=None, **kwargs):
         env_cfg = copy.deepcopy(env_cfg)
         env_cfg['unwrapped'] = False
         self.env = build_env(env_cfg)
         self.env.reset()
         self.horizon = self.env._max_episode_steps if horizon is None else horizon
-
+        self.save_episode_last_state = save_last_state
+        self.save_state_path = save_state_path
+        
         self.env_name = env_cfg.env_name
         self.worker_id = worker_id
         self.save_traj = save_traj
@@ -56,6 +60,7 @@ class Evaluation:
         self.logger = flush_print
         self.episode_id = 0
         self.episode_lens, self.episode_rewards, self.episode_finishes = [], [], []
+        self.selected_ids, self.target_indexes = [], []
         self.episode_len, self.episode_reward, self.episode_finish = 0, 0, False
         self.recent_obs = None
         self.data_episode = None
@@ -91,6 +96,7 @@ class Evaluation:
                     self.logger(f"Save trajectory at {self.trajectory_path}.")
 
         self.episode_lens, self.episode_rewards, self.episode_finishes = [], [], []
+        self.selected_ids, self.target_indexes = [], []
         self.recent_obs = None
         self.data_episode = None
         self.video_writer = None
@@ -103,6 +109,8 @@ class Evaluation:
         self.episode_lens.append(self.episode_len)
         self.episode_rewards.append(self.episode_reward)
         self.episode_finishes.append(self.episode_finish)
+        self.selected_ids.append(self.env.selected_id)
+        self.target_indexes.append(self.env.target_index)
 
         if self.save_traj and self.data_episode is not None:
             group = self.h5_file.create_group(f'traj_{self.episode_id}')
@@ -129,7 +137,7 @@ class Evaluation:
             image = self.env.render(mode='rgb_array')
             image = image[..., ::-1]
             if self.video_writer is None:
-                self.video_file = osp.join(self.video_dir, f'{self.episode_id}.mp4')
+                self.video_file = osp.join(self.video_dir, f'episode_{self.episode_id}_env_{self.env.selected_id}_{self.env.target_index}.mp4')
                 self.video_writer = cv2.VideoWriter(self.video_file, cv2.VideoWriter_fourcc(*'mp4v'), 20,
                                                     (image.shape[1], image.shape[0]))
             self.video_writer.write(image)
@@ -168,6 +176,10 @@ class Evaluation:
                 self.data_episode = ReplayMemory(self.horizon)
             self.data_episode.push(**data_to_store)
         if episode_done:
+            if self.save_episode_last_state:
+                path_and_filename = self.save_state_path + f'OpenCabinetDoor_{self.env.selected_id}_link{self.env.target_index}'
+                path_and_filename += f'_EpisodeLen_{self.episode_len}_Reward_{self.episode_reward:.0f}.npz'
+                self.env.save_state(path_and_filename)
             if self.use_log:
                 self.logger(f'Episode {self.episode_id}: Length {self.episode_len} Reward: {self.episode_reward}')
             self.episode_finish = done
@@ -217,7 +229,7 @@ class Evaluation:
                     print_info = dict_to_str(print_dict)
                     self.logger(f'{print_info}')
         self.finish()
-        return self.episode_lens, self.episode_rewards, self.episode_finishes
+        return self.episode_lens, self.episode_rewards, self.episode_finishes, self.selected_ids, self.target_indexes
 
     def close(self):
         if hasattr(self, 'env'):
@@ -291,6 +303,18 @@ class BatchEvaluation:
             self.workers[i].get_attr('episode_finishes')
         return concat_list([self.workers[i].get() for i in range(self.n)])
 
+    @property
+    def selected_ids(self):
+        for i in range(self.n):
+            self.workers[i].get_attr('selected_ids')
+        return concat_list([self.workers[i].get() for i in range(self.n)])
+
+    @property
+    def target_indexes(self):
+        for i in range(self.n):
+            self.workers[i].get_attr('target_indexes')
+        return concat_list([self.workers[i].get() for i in range(self.n)])
+
     def finish(self):
         for i in range(self.n):
             self.workers[i].call('finish')
@@ -308,7 +332,7 @@ class BatchEvaluation:
             for i in range(num_threads):
                 num_traj = len(glob.glob(osp.join(self.work_dir, f'thread_{i}', 'videos', '*.mp4')))
                 for j in range(num_traj):
-                    shutil.copyfile(osp.join(self.work_dir, f'thread_{i}', 'videos', f'{j}.mp4'),
+                    shutil.copyfile(osp.join(self.work_dir, f'thread_{i}', 'videos', f'episode_{j}*.mp4'),
                                     osp.join(self.video_dir, f'{index}.mp4'))
                     index += 1
             self.logger(f"Merge videos to {self.video_dir}")
@@ -355,7 +379,7 @@ class BatchEvaluation:
         self.finish()
         if self.enable_merge:
             self.merge_results(n)
-        return self.episode_lens, self.episode_rewards, self.episode_finishes
+        return self.episode_lens, self.episode_rewards, self.episode_finishes, self.selected_ids, self.target_indexes
 
     def close(self):
         for worker in self.workers:

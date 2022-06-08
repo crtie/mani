@@ -22,7 +22,8 @@ writer = SummaryWriter("logs")
 @MBRL.register_module()
 class MBPO(BaseAgent):
     def __init__(self, policy_cfg, value_cfg, model_cfg, obs_shape, action_shape, action_space, batch_size=128, gamma=0.99,
-                 update_coeff=0.005, alpha=0.2, target_update_interval=1, max_iter_use_real_data=1000, automatic_alpha_tuning=True,
+                 update_coeff=0.005, alpha=0.2, target_update_interval=1, max_iter_use_real_data=1000,use_expert=0,model_updates=256,
+                 data_generated_by_model=4 , automatic_alpha_tuning=True,
                  alpha_optim_cfg=None):
         super(MBPO, self).__init__()
         policy_optim_cfg = policy_cfg.pop("optim_cfg")
@@ -35,7 +36,10 @@ class MBPO(BaseAgent):
         self.batch_size = batch_size
         self.target_update_interval = target_update_interval
         self.automatic_alpha_tuning = automatic_alpha_tuning
-        self.max_iter_use_real_data=max_iter_use_real_data
+        self.max_iter_use_real_data = max_iter_use_real_data
+        self.use_expert = use_expert
+        self.model_updates = model_updates
+        self.data_generated_by_model = data_generated_by_model
 
         policy_cfg['obs_shape'] = obs_shape
         policy_cfg['action_shape'] = action_shape
@@ -101,9 +105,9 @@ class MBPO(BaseAgent):
             self.model_optim.step()
         return loss1,loss2,loss3
 
-    def model_rollout(self, replay_env, replay_model):
+    def model_rollout(self, replay_env, replay_model,n_steps):
           # ! 每次造4倍于环境步的model数据
-        sampled_batch = replay_env.sample(32)
+        sampled_batch = replay_env.sample(self.data_generated_by_model * n_steps)
         sampled_batch = to_torch(
             sampled_batch, dtype='float32', device=self.device, non_blocking=True)
         for key in sampled_batch:
@@ -143,68 +147,83 @@ class MBPO(BaseAgent):
         rollout['episode_dones'] = np.zeros_like(pred_reward.cpu())
         replay_model.push_batch(**rollout)
 
-    def update_parameters(self, memory1,updates,memory2=None,expert_replay=None ,alpha=0.05,iter=0):
+    def update_parameters(self, memory1,updates,memory2=None,expert_replay=None,alpha=0.05,iter=0):
         num_expert_replay_is_not_null=0
         if expert_replay is not None:
             for env_id in expert_replay.keys():
                 if(len(expert_replay[env_id])>0):
                     num_expert_replay_is_not_null+=1
-
+        beta_each = 0.01 if num_expert_replay_is_not_null>0 else 0
         if(iter==0): #! static rate
             sampled_batch1 = memory1.sample(int(self.batch_size*alpha))
             sampled_batch2 = memory2.sample(self.batch_size-int(self.batch_size*alpha))
         else:
+            if self.use_expert:
+                alpha=min(0.8,float(iter/self.max_iter_use_real_data))
+                sampled_batch3=[]
+                expert_data = 0
+                for env_id in expert_replay.keys():
+                    if(len(expert_replay[env_id])>0):
+                        data_to_sample=min(len(expert_replay[env_id]),int(self.batch_size*beta_each))
+                        expert_data += data_to_sample
+                        # print(expert_data)
+                        sampled_batch3.append(expert_replay[env_id].sample(data_to_sample))
+                rest =self.batch_size - expert_data
+                data_from_model = int(alpha*rest)
+                data_from_env = rest-data_from_model
 
-            beta_each = 0.01 if num_expert_replay_is_not_null>0 else 0
-            alpha=min(0.8,float(iter/self.max_iter_use_real_data))*(1-beta_each*num_expert_replay_is_not_null)
-            alpha=0
-            # print(f'beta each is {beta_each}')
-            # sampled_batch3=[]
-            # for env_id in expert_replay.keys():
-            #     if(len(expert_replay[env_id])>0):
-            #         sampled_batch3.append(expert_replay[env_id].sample(max(1,int(self.batch_size*beta_each))))
+                sampled_batch1 = memory1.sample(data_from_model)
+                sampled_batch2 = memory2.sample(data_from_env)
 
-            #print(f'{alpha*100}percentage data are collected from model buffer')
-            sampled_batch1 = memory1.sample(max(1,int(self.batch_size*alpha)))
-            # sampled_batch2 = memory2.sample(self.batch_size-max(1,int(self.batch_size*alpha)-max(1,int(self.batch_size*beta_each*num_expert_replay_is_not_null))))
-            sampled_batch2 = memory2.sample(self.batch_size-max(1,int(self.batch_size*alpha)))
-        sampled_batch={}
-        for key in sampled_batch1:
-            if not isinstance(sampled_batch1[key], dict) and sampled_batch1[key].ndim == 1:
-                sampled_batch1[key] = sampled_batch1[key][..., None]
-        for key in sampled_batch2:
-            if not isinstance(sampled_batch2[key], dict) and sampled_batch2[key].ndim == 1:
-                sampled_batch2[key] = sampled_batch2[key][..., None]
-        
-        permutation = list(np.random.permutation(self.batch_size))
+                permutation = list(np.random.permutation(rest))
+                for key in sampled_batch1:
+                    if not isinstance(sampled_batch1[key], dict) and sampled_batch1[key].ndim == 1:
+                        sampled_batch1[key] = sampled_batch1[key][..., None]
+
+                for key in sampled_batch2:
+                    if not isinstance(sampled_batch2[key], dict) and sampled_batch2[key].ndim == 1:
+                        sampled_batch2[key] = sampled_batch2[key][..., None]
+                
+                sampled_batch = merge_dict(sampled_batch1,sampled_batch2,permutation)
+
+                for i in range(len(sampled_batch3)):
+                    for key in sampled_batch3[i]:
+                        if not isinstance(sampled_batch3[i][key], dict) and sampled_batch3[i][key].ndim == 1:
+                            sampled_batch3[i][key] = sampled_batch3[i][key][..., None]
+                    sampled_batch=merge_dict(sampled_batch,sampled_batch3[i])
+
+            else:
+                alpha=min(0.8,float(iter/self.max_iter_use_real_data))
+                alpha=0
+                #print(f'{alpha*100}percentage data are collected from model buffer')
+                # sampled_batch1 = memory1.sample(max(1,int(self.batch_size*alpha)))
+                sampled_batch2 = memory2.sample(self.batch_size)
+                sampled_batch={}
+                # for key in sampled_batch1:
+                #     if not isinstance(sampled_batch1[key], dict) and sampled_batch1[key].ndim == 1:
+                #         sampled_batch1[key] = sampled_batch1[key][..., None]
+                for key in sampled_batch2:
+                    if not isinstance(sampled_batch2[key], dict) and sampled_batch2[key].ndim == 1:
+                        sampled_batch2[key] = sampled_batch2[key][..., None]
+                # permutation = list(np.random.permutation(self.batch_size))
         # for key in sampled_batch:
         #     if not isinstance(sampled_batch[key], dict) and sampled_batch[key].ndim == 1:
         #         sampled_batch[key] = sampled_batch[key][..., None]
-        sampled_batch=merge_dict(sampled_batch1,sampled_batch2,permutation)
-        # permutation= range(self.batch_size)
-        # for i in range(len(sampled_batch3)):
-        #     for key in sampled_batch3[i]:
-        #         if not isinstance(sampled_batch3[i][key], dict) and sampled_batch3[i][key].ndim == 1:
-        #             sampled_batch3[i][key] = sampled_batch3[i][key][..., None]
-        #     sampled_batch=merge_dict(sampled_batch,sampled_batch3[i],permutation)
-
+                # sampled_batch=merge_dict(sampled_batch1,sampled_batch2,permutation)
+                sampled_batch = sampled_batch2
 
 
         sampled_batch = to_torch(
             sampled_batch, dtype='float32', device=self.device, non_blocking=True)
 
         with torch.no_grad():  # ! 这里为啥不用梯度
-            next_action, next_log_prob = self.policy(
-                sampled_batch['next_obs'], mode='all')[:2]
-            q_next_target = self.target_critic(
-                sampled_batch['next_obs'], next_action)
-            min_q_next_target = torch.min(
-                q_next_target, dim=-1, keepdim=True).values - self.alpha * next_log_prob
-            q_target = sampled_batch['rewards'] + \
-                (1 - sampled_batch['dones']) * self.gamma * min_q_next_target
+            next_action, next_log_prob = self.policy(sampled_batch['next_obs'], mode='all')[:2]
+            q_next_target = self.target_critic(sampled_batch['next_obs'], next_action)
+            min_q_next_target = torch.min(q_next_target, dim=-1, keepdim=True).values - self.alpha * next_log_prob
+            q_target = sampled_batch['rewards'] + (1 - sampled_batch['dones']) * self.gamma * min_q_next_target
         q = self.critic(sampled_batch['obs'], sampled_batch['actions'])
-        critic_loss = F.mse_loss(
-            q, q_target.repeat(1, q.shape[-1])) * q.shape[-1]
+        q = self.critic(sampled_batch['obs'], sampled_batch['actions'])
+        critic_loss = F.mse_loss(q, q_target.repeat(1, q.shape[-1])) * q.shape[-1]
         abs_critic_error = torch.abs(q - q_target.repeat(1, q.shape[-1]))
 
         self.critic_optim.zero_grad()
@@ -240,4 +259,5 @@ class MBPO(BaseAgent):
             'q': torch.min(q, dim=-1).values.mean().item(),
             'q_target': torch.mean(q_target).item(),
             'log_pi': torch.mean(log_pi).item(),
+            'num_expert': num_expert_replay_is_not_null,
         }

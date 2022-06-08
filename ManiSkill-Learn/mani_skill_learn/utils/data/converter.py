@@ -148,12 +148,12 @@ def number_to_str(x, num):
         print(type(x))
         raise TypeError(f"Type of {x} is not a number")
 
-def merge_dict(dict1,dict2,permutation):
-
+def merge_dict(dict1,dict2,permutation=None):
     if is_dict(dict1):
-        # print(dict1.keys(),dict2.keys())
+        assert dict1.keys()==dict2.keys(),"can't merge two dicts with different keys"
         return {k: merge_dict(dict1[k],dict2[k],permutation) for k in dict1.keys()}
     else:
         ret=np.concatenate((dict1,dict2),axis=0)
-        ret=ret[permutation]
+        if permutation is not None:
+            ret=ret[permutation]
     return ret

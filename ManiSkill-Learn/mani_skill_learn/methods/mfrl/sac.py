@@ -19,7 +19,7 @@ from mani_skill_learn.utils.torch import BaseAgent
 @MFRL.register_module()
 class SAC(BaseAgent):
     def __init__(self, policy_cfg, value_cfg, obs_shape, action_shape, action_space, batch_size=128, gamma=0.99,
-                 update_coeff=0.005, alpha=0.2, target_update_interval=1, automatic_alpha_tuning=True,
+                 update_coeff=0.005, alpha=0.2, target_update_interval=1,use_expert=0, automatic_alpha_tuning=True,
                  alpha_optim_cfg=None):
         super(SAC, self).__init__()
         policy_optim_cfg = policy_cfg.pop("optim_cfg")
@@ -49,6 +49,7 @@ class SAC(BaseAgent):
         self.target_entropy = -np.prod(action_shape)
         if self.automatic_alpha_tuning:
             self.alpha = self.log_alpha.exp().item()
+        self.use_expert=use_expert
 
         self.alpha_optim = build_optimizer(self.log_alpha, alpha_optim_cfg)
         self.policy_optim = build_optimizer(self.policy, policy_optim_cfg)
@@ -61,40 +62,29 @@ class SAC(BaseAgent):
             for env_id in expert_replay.keys():
                 if(len(expert_replay[env_id])>0):
                     num_expert_replay_is_not_null+=1
-
+        if self.use_expert:
             beta_each = 0.01 if num_expert_replay_is_not_null>0 else 0
-            alpha=0
             sampled_batch3=[]
+            expert_data = 0
             for env_id in expert_replay.keys():
-                if(len(expert_replay[env_id])>0):
-                    sampled_batch3.append(expert_replay[env_id].sample(max(1,int(self.batch_size*beta_each))))
-
+                    if(len(expert_replay[env_id])>0):
+                        data_to_sample=min(len(expert_replay[env_id]),int(self.batch_size*beta_each))
+                        expert_data += data_to_sample
+                        sampled_batch3.append(expert_replay[env_id].sample(data_to_sample))
+            rest= self.batch_size- expert_data
             sampled_batch1 = memory.sample(max(1,int(self.batch_size*alpha)))
-            sampled_batch2 = memory.sample(self.batch_size-max(1,int(self.batch_size*alpha)-max(1,int(self.batch_size*beta_each*num_expert_replay_is_not_null))))
-        sampled_batch={}
-        for key in sampled_batch1:
-            if not isinstance(sampled_batch1[key], dict) and sampled_batch1[key].ndim == 1:
-                sampled_batch1[key] = sampled_batch1[key][..., None]
-        for key in sampled_batch2:
-            if not isinstance(sampled_batch2[key], dict) and sampled_batch2[key].ndim == 1:
-                sampled_batch2[key] = sampled_batch2[key][..., None]
-        
-        permutation = list(np.random.permutation(self.batch_size))
-        # for key in sampled_batch:
-        #     if not isinstance(sampled_batch[key], dict) and sampled_batch[key].ndim == 1:
-        #         sampled_batch[key] = sampled_batch[key][..., None]
-        sampled_batch=merge_dict(sampled_batch1,sampled_batch2,permutation)
-        permutation= range(self.batch_size)
-        for i in range(len(sampled_batch3)):
-            for key in sampled_batch3[i]:
-                if not isinstance(sampled_batch3[i][key], dict) and sampled_batch3[i][key].ndim == 1:
-                    sampled_batch3[i][key] = sampled_batch3[i][key][..., None]
-            sampled_batch=merge_dict(sampled_batch,sampled_batch3[i],permutation)
-
-        sampled_batch = to_torch(sampled_batch, dtype='float32', device=self.device, non_blocking=True)
-        for key in sampled_batch:
-            if not isinstance(sampled_batch[key], dict) and sampled_batch[key].ndim == 1:
-                sampled_batch[key] = sampled_batch[key][..., None]
+            for key in sampled_batch1:
+                if not isinstance(sampled_batch1[key], dict) and sampled_batch1[key].ndim == 1:
+                    sampled_batch1[key] = sampled_batch1[key][..., None]
+            for i in range(len(sampled_batch3)):
+                for key in sampled_batch3[i]:
+                    if not isinstance(sampled_batch3[i][key], dict) and sampled_batch3[i][key].ndim == 1:
+                        sampled_batch3[i][key] = sampled_batch3[i][key][..., None]
+                sampled_batch=merge_dict(sampled_batch,sampled_batch3[i])
+        else:
+            sampled_batch=memory.sample(self.batch_size)
+        sampled_batch = to_torch(
+            sampled_batch, dtype='float32', device=self.device, non_blocking=True)
         with torch.no_grad():  #! 这里为啥不用梯度
             next_action, next_log_prob = self.policy(sampled_batch['next_obs'], mode='all')[:2]
             q_next_target = self.target_critic(sampled_batch['next_obs'], next_action)
@@ -139,4 +129,5 @@ class SAC(BaseAgent):
             'q': torch.min(q, dim=-1).values.mean().item(),
             'q_target': torch.mean(q_target).item(),
             'log_pi': torch.mean(log_pi).item(),
+            'num_expert': num_expert_replay_is_not_null,
         }

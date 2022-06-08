@@ -26,4 +26,6 @@ class ContinuousValue(ExtendedModule):
         inputs = combine_obs_with_action(state, action)
         ret = [value(inputs) for value in self.values]
         # print(torch.cat(ret, dim=-1).shape)
-        return torch.cat(ret, dim=-1)
+        ret=torch.cat(ret, dim=-1)
+        # print(torch.isnan(ret).int().sum())
+        return ret

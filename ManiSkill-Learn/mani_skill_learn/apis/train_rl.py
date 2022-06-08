@@ -56,8 +56,7 @@ class EpisodicStatistics:
         self.current_lens *= 0
 
     def get_mean(self):
-        num_episode = np.clip(np.sum(self.history_counts),
-                              a_min=1E-5, a_max=1E10)
+        num_episode = np.clip(np.sum(self.history_counts), a_min=1E-5, a_max=1E10)
         return np.sum(self.history_lens) / num_episode, np.sum(self.history_rewards) / num_episode
 
     def print_current(self):
@@ -88,16 +87,21 @@ class EveryNSteps:
         return int(x // self.interval) * self.interval
 
 
-def train_rl(agent, rollout, evaluator, env_cfg, replay_env , replay_model ,expert_replay, on_policy, work_dir, total_steps=1000000, warm_steps=10000,
-             n_steps=1, n_updates=1,m_steps=1, n_checkpoint=None, n_eval=None, init_replay_buffers=None,
+
+def train_rl(agent, rollout, evaluator, env_cfg, replay_env ,tmp_replay , replay_model ,expert_replay,is_GAIL, on_policy, work_dir, total_steps=1000000, warm_steps=10000,
+             n_steps=1, n_updates=1,m_steps=1,discrim_steps = 1, n_checkpoint=None, n_eval=None, init_replay_buffers=None,
              init_replay_with_split=None, expert_replay_split_cfg = None,eval_cfg=None, replicate_init_buffer=1, split_expert_buffer=False ,num_trajs_per_demo_file=-1):
     logger = get_logger(env_cfg.env_name)
 
     import torch
     from mani_skill_learn.utils.torch import get_cuda_info
     replay_env.reset()
+    
+
     #! 只有mbrl才有replay_model
-    env_ids=[str(i) for i in range (1000,1083)]
+    # env_ids=[str(i) for i in range (1000,1083)]
+    env_ids=['1000','1004','1005','1013','1016','1021','1024','1027','1032','1033','1035','1038','1040','1044',\
+    '1045','1052','1054','1056','1061','1063','1066','1067','1076','1079','1082']
     split_expert_buffer=True
     for env_id in env_ids:
         expert_replay[env_id]=build_replay(expert_replay_split_cfg)
@@ -118,6 +122,8 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env , replay_model ,expe
         replay_env.restore(init_replay_buffers,
                            replicate_init_buffer, num_trajs_per_demo_file)
         logger.info(f'Initialize buffer with {len(replay_env)} samples')
+    print(len(replay_env))
+
     if init_replay_with_split is not None:
         assert is_seq_of(init_replay_with_split) and len(
             init_replay_with_split) == 2
@@ -146,6 +152,7 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env , replay_model ,expe
             f'Rollout state dim: {get_shape(rollout.recent_obs)}, action dim: {len(rollout.random_action())}')
         rollout.reset()
         episode_statistics = EpisodicStatistics(rollout.n)
+        episode_statistics2 = EpisodicStatistics(rollout.n)
         total_episodes = 0
     else:
         # Batch RL
@@ -205,10 +212,16 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env , replay_model ,expe
     total_updates = 0
     begin_time = datetime.now()
     max_ETA_len = None
+
+    #! debug用的
+    tmp_flag=0
+
+
     for iteration_id in itertools.count(1):
         tf_logs.reset()
         if rollout:
             episode_statistics.reset_history()
+            episode_statistics2.reset_history()
 
         if on_policy:
             replay_env.reset()
@@ -218,26 +231,33 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env , replay_model ,expe
 
         update_time = 0
         time_begin_episode = time.time()
-        if(is_mbrl):
-            loss=agent.train_model(replay_env)
-            for i in range(len(loss)):
-                print(f"iter {iteration_id} loss {i+1} is {float(loss[i])}")
-                print_dict[f'pred loss{i+1}']=float(loss[i])
-            
+
 
         if n_steps > 0:
             # For online RL
             collect_sample_time = 0
             cnt_episodes = 0
             num_done = 0
+
+            if(is_mbrl):
+                loss=agent.train_model(replay_env)
+                for i in range(len(loss)):
+                    print(f"iter {iteration_id} loss {i+1} is {float(loss[i])}")
+                    print_dict[f'pred loss{i+1}']=float(loss[i])
+
             """
             For on-policy algorithm, we will print training infos for every gradient batch.
             For off-policy algorithm, we will print training infos for every n_steps epochs.
             """
             print("now we are going to add environment steps")
             print(f"env buffer size is {len(replay_env)}")
+            if (is_GAIL):
+                print(f"tmp buffer size is {len(tmp_replay)}")
+                tmp_replay.reset()
             if(is_mbrl):
                 print(f"model buffer size is {len(replay_model)}")
+
+
             for env_id in env_ids:
                 if(len(expert_replay[env_id])>0):print(f'env {env_id} have {len(expert_replay[env_id])} points')
             while num_done < n_steps and not (on_policy and num_done > 0):
@@ -247,33 +267,39 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env , replay_model ,expe
                     trajectories, infos = rollout.forward_with_policy(agent.policy, n_steps, whole_episode=on_policy, merge= not(split_expert_buffer))
 
                     for k in range(n_steps):
+                        selected_id = recent_ids[k]
+                        # if(not save_points):
                         trajs_split[k].append(trajectories[k])
-                        trajectories[k]['ids']=recent_ids[k]
                         if trajectories[k]['dones']==1:
                             success_traj = concat_list_of_array(trajs_split[k])
-                            selected_id = recent_ids[k]
-                            
                             expert_replay[str(selected_id)].push_batch(**success_traj)
                         if trajectories[k]['episode_dones']==1:
                             trajs_split[k]=[]
+                        # else:
+                        # if (trajectories[k]['rewards']>-7.5):
+                        #     expert_replay[str(selected_id)].push_batch(**trajectories[k])
+
                     trajectories = concat_list_of_array(trajectories)
-                    trajectories['ids'] = np.array(trajectories['ids'])
+                    # trajectories['ids'] = np.array(trajectories['ids'])
                     infos = concat_list_of_array(infos)
-
-
-
                     #! 可以把reward高的点扔到新的buffer里
+                    if (is_GAIL):
+                        expert_rewards = agent.expert_reward(trajectories['obs'], trajectories['actions'])
+                        episode_statistics2.push(expert_rewards, trajectories['episode_dones'])
+                    # print(np.mean(expert_rewards))
                     episode_statistics.push(trajectories['rewards'], trajectories['episode_dones'])
+
                     collect_sample_time += time.time() - tmp_time
 
                     num_done += np.sum(trajectories['episode_dones'])
                     cnt_episodes += np.sum(trajectories['episode_dones'].astype(np.int32))
                     replay_env.push_batch(**trajectories)
+                    if(tmp_replay is not None):
+                        tmp_replay.push_batch(**trajectories)
                     steps += n_steps
-                    # if(is_mbrl):
-                    #     agent.model_rollout(replay_env,replay_model)
-
-
+                    if(is_mbrl):
+                        # print(n_steps)
+                        agent.model_rollout(replay_env,replay_model,n_steps)
 
                 for i in range(n_updates):
                     total_updates += 1
@@ -285,6 +311,18 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env , replay_model ,expe
                         tf_logs.push(
                             **agent.update_parameters(replay_env,expert_replay=expert_replay, updates=total_updates))
                     update_time += time.time() - tmp_time
+            if(is_GAIL):
+                tmploss=0
+                exploss=0
+                for _i_ in range(discrim_steps):
+                    tmp_time = time.time()
+                    el, tl = agent.update_discriminator(expert_replay, tmp_replay, expert_split = split_expert_buffer)
+                    tmploss += tl
+                    exploss += el
+                tmploss /= discrim_steps
+                exploss /= discrim_steps           
+                print_dict['episode_length'], print_dict['expert_reward'] = episode_statistics2.get_mean()
+
 
             total_episodes += cnt_episodes
             train_dict['num_episode'] = int(cnt_episodes)
@@ -293,6 +331,10 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env , replay_model ,expe
             train_dict['collect_sample_time'] = collect_sample_time
 
             print_dict['episode_length'], print_dict['episode_reward'] = episode_statistics.get_mean()
+
+            if(is_GAIL):
+                print_dict['fake_sample_loss'] = tmploss
+                print_dict['expert_sample_loss'] = exploss
         else:
             # For offline RL
             tf_logs.reset()
@@ -335,10 +377,14 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env , replay_model ,expe
             standardized_ckpt_step = check_checkpoint.standard(steps)
             model_path = osp.join(
                 checkpoint_dir, f'model_{standardized_ckpt_step}.ckpt')
+            buffer_path = osp.join(
+                checkpoint_dir, 'buffer.h5')
+            # replay_env.to_h5(buffer_path)
             logger.info(
                 f'Save model at step: {steps}.The model will be saved at {model_path}')
             agent.to_normal()
             save_checkpoint(agent, model_path)
+
             agent.recover_data_parallel()
         if check_eval.check(steps):
             standardized_eval_step = check_eval.standard(steps)
@@ -347,10 +393,9 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env , replay_model ,expe
             eval_dir = osp.join(work_dir, f'eval_{standardized_eval_step}')
             agent.eval()
             torch.cuda.empty_cache()
-            lens, rewards, finishes = evaluator.run(
-                agent, **eval_cfg, work_dir=eval_dir)
+            lens, rewards, finishes, selected_ids, target_ids = evaluator.run(agent, **eval_cfg, work_dir=eval_dir)
             torch.cuda.empty_cache()
-            save_eval_statistics(eval_dir, lens, rewards, finishes, logger)
+            save_eval_statistics(eval_dir, lens, rewards, finishes, selected_ids, target_ids, logger)
             agent.train()
 
             eval_dict = {}
@@ -358,6 +403,7 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env , replay_model ,expe
             eval_dict['std_length'] = np.std(lens)
             eval_dict['mean_reward'] = np.mean(rewards)
             eval_dict['std_reward'] = np.std(rewards)
+            eval_dict['success_rate'] = np.mean(finishes)
             tf_logger.log(eval_dict, n_iter=steps, eval=True)
 
         if steps >= total_steps:
