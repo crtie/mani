@@ -109,7 +109,7 @@ expert_replay_split_cfg = dict(
 train_mfrl_cfg = dict( 
     total_steps=2500000,
     warm_steps=4000,
-    n_eval=100000,
+    n_eval=10000,
     n_checkpoint=100000,
     n_steps=8,
     n_updates=4,
@@ -126,7 +126,7 @@ rollout_cfg = dict(
 
 eval_cfg = dict(
     type='BatchEvaluation',
-    num=20,
+    num=16,
     num_procs=8,
     use_hidden_state=False,
     start_state=None,
