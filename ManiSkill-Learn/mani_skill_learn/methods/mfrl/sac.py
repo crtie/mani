@@ -72,15 +72,16 @@ class SAC(BaseAgent):
                         expert_data += data_to_sample
                         sampled_batch3.append(expert_replay[env_id].sample(data_to_sample))
             rest= self.batch_size- expert_data
-            sampled_batch1 = memory.sample(max(1,int(self.batch_size*alpha)))
-            for key in sampled_batch1:
-                if not isinstance(sampled_batch1[key], dict) and sampled_batch1[key].ndim == 1:
-                    sampled_batch1[key] = sampled_batch1[key][..., None]
+            sampled_batch = memory.sample(rest)
+            for key in sampled_batch:
+                if not isinstance(sampled_batch[key], dict) and sampled_batch[key].ndim == 1:
+                    sampled_batch[key] = sampled_batch[key][..., None]
             for i in range(len(sampled_batch3)):
                 for key in sampled_batch3[i]:
                     if not isinstance(sampled_batch3[i][key], dict) and sampled_batch3[i][key].ndim == 1:
                         sampled_batch3[i][key] = sampled_batch3[i][key][..., None]
                 sampled_batch=merge_dict(sampled_batch,sampled_batch3[i])
+
         else:
             sampled_batch=memory.sample(self.batch_size)
         sampled_batch = to_torch(

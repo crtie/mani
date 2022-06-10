@@ -103,7 +103,7 @@ class MBPO(BaseAgent):
             self.model_optim.zero_grad()
             mse_loss.backward()
             self.model_optim.step()
-        return loss1,loss2,loss3
+        return loss1,loss2,loss3,mse_loss
 
     def model_rollout(self, replay_env, replay_model,n_steps):
           # ! 每次造4倍于环境步的model数据

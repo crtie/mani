@@ -242,8 +242,13 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env ,tmp_replay , replay
             if(is_mbrl):
                 loss=agent.train_model(replay_env)
                 for i in range(len(loss)):
+                    if(i==len(loss-1)):
+                        print(f"iter {iteration_id} total loss is {float(loss[i])}")
+                        print_dict[f'total loss']=float(loss[i])
+
                     print(f"iter {iteration_id} loss {i+1} is {float(loss[i])}")
                     print_dict[f'pred loss{i+1}']=float(loss[i])
+
 
             """
             For on-policy algorithm, we will print training infos for every gradient batch.
