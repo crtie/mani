@@ -107,9 +107,9 @@ expert_replay_split_cfg = dict(
 
 
 train_mfrl_cfg = dict( 
-    total_steps=2500000,
+    total_steps=3000000,
     warm_steps=4000,
-    n_eval=10000,
+    n_eval=100000,
     n_checkpoint=100000,
     n_steps=8,
     n_updates=4,
@@ -134,7 +134,7 @@ eval_cfg = dict(
     save_video=False,
     use_log=True,
     env_cfg=dict(
-        env_name= "OpenCabinetDrawer_split_validation-v0",
+        env_name= "OpenCabinetDoor_split_no_mid_handle_validation-v0",
         type='gym',
         unwrapped=False,
         obs_mode='pointcloud',

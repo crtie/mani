@@ -75,7 +75,7 @@ class MBPO(BaseAgent):
     def train_model(self, replay_env):
         # print(self.model)
         chamLoss = chamfer3D.dist_chamfer_3D.chamfer_3DDist()
-        for i in range(256):
+        for i in range(self.model_updates):
             sampled_batch = replay_env.sample(self.batch_size)
             sampled_batch = to_torch(
                 sampled_batch, dtype='float32', device=self.device, non_blocking=True)
