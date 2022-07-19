@@ -218,7 +218,10 @@ class Evaluation:
             if self.use_hidden_state:
                 obs = self.env.get_state()
             with torch.no_grad():
-                action = to_np(pi(unsqueeze(obs, axis=0), mode=self.sample_mode))[0]
+                if not pi.use_cem:
+                    action = to_np(pi(unsqueeze(obs, axis=0), mode=self.sample_mode))[0]
+                else:
+                    action = pi.cem_rollout(unsqueeze(obs), mode='eval')
             episode_done = self.step(action)
             if episode_done:
                 reset_pi()
@@ -244,7 +247,7 @@ class Evaluation:
 @EVALUATIONS.register_module()
 class BatchEvaluation:
     def __init__(self, env_cfg, num_procs=1, use_log=True, save_traj=True, save_video=True, enable_merge=True,
-                 synchronize=True, sample_mode='mean', **kwargs):
+                 synchronize=False, sample_mode='mean', **kwargs):
         self.work_dir = None
         self.env_name = env_cfg.env_name
         self.save_traj = save_traj
@@ -283,7 +286,7 @@ class BatchEvaluation:
     def recent_obs(self):
         for i in range(self.n):
             self.workers[i].get_attr('recent_obs')
-        return stack_list_of_array([self.workers[i].get() for i in range(self.n)])
+        return [self.workers[i].get() for i in range(self.n)]
 
     @property
     def episode_lens(self):
@@ -358,7 +361,12 @@ class BatchEvaluation:
                     break
                 obs = self.recent_obs
                 with torch.no_grad():
-                    actions = to_np(pi(obs, mode='eval'))
+                    if not pi.use_cem:
+                        obs=stack_list_of_array(obs)
+                        actions = to_np(pi(obs, mode='eval'))
+                    else:
+                        # obs=stack_list_of_array(obs)
+                        actions = to_np(pi.cem_rollout(obs, mode='eval'))
                 for i in range(n):
                     if num_finished[i] < running_steps[i]:
                         self.workers[i].call('step', actions[i])

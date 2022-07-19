@@ -16,7 +16,7 @@ def process_mani_skill_base(obs, env=None):
         rgb = obs[obs_mode]['rgb']
         xyz = obs[obs_mode]['xyz']
         seg = obs[obs_mode]['seg']
-
+        #print(seg.shape) #! 第0个mask代表把手，1代表目标抽屉/门，后面十八个分别代表机器人的不同link
         # Given that xyz are already in world-frame, then filter the point clouds that belong to ground.
         mask = (xyz[:, 2] > 1e-3)
         rgb = rgb[mask]
@@ -57,7 +57,7 @@ def process_mani_skill_base(obs, env=None):
         if seg.shape[1] == 1:
             bk_seg = np.logical_not(seg[:, 0])
         else:
-            bk_seg = np.logical_not(np.logical_or(*([seg[:, i] for i in range(seg.shape[1])])))
+            bk_seg = ~seg.any(-1, keepdims=True)
         bk_seg = np.where(bk_seg)[0]
         shuffle_indices = np.random.permutation(bk_seg)[:sample_background_pts]
 

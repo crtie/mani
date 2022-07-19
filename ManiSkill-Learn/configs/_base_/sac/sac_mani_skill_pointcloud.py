@@ -122,11 +122,12 @@ rollout_cfg = dict(
     use_cost=False,
     reward_only=False,
     num_procs=8,
+    compute_next_obs = True
 )
 
 eval_cfg = dict(
     type='BatchEvaluation',
-    num=16,
+    num=100,
     num_procs=8,
     use_hidden_state=False,
     start_state=None,
@@ -134,7 +135,7 @@ eval_cfg = dict(
     save_video=False,
     use_log=True,
     env_cfg=dict(
-        env_name= "OpenCabinetDoor_split_no_mid_handle_validation-v0",
+        env_name= "OpenCabinetDrawer_split_validation-v0",
         type='gym',
         unwrapped=False,
         obs_mode='pointcloud',

@@ -77,6 +77,7 @@ class SapienRLWrapper(ObservationWrapper):
         if self.obs_mode == "state":
             return observation
         observation = process_mani_skill_base(observation, self.env)
+
         visual_data = observation[self.obs_mode]
         self._update_buffer(visual_data)
         visual_data = self._get_buffer_content()
@@ -87,8 +88,8 @@ class SapienRLWrapper(ObservationWrapper):
         ret['state'] = state
         return ret
 
-    def get_obs(self):
-        return self.observation(self.env.get_obs())
+    def get_obs(self,detailed_mask_agent=False):
+        return self.observation(self.env.get_obs(detailed_mask_agent=detailed_mask_agent))
 
     @property
     def _max_episode_steps(self):

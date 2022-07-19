@@ -99,14 +99,18 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env ,tmp_replay , replay
     replay_env.reset()
     
 
-    #! for drawer
-    env_ids=['1000','1004','1005','1013','1016','1021','1024','1027','1032','1033','1035','1038','1040','1044',\
-    '1045','1052','1054','1056','1061','1063','1066','1067','1076','1079','1082']
 
-    #! for door
-    # env_ids=['1000','1001','1002','1006','1007','1014','1017','1018','1025','1026','1027','1028','1030','1031',\
-    # '1034','1036','1038','1039','1041','1042','1044','1045','1046','1047','1049','1051','1052','1054','1057',\
-    # '1060','1061','1062','1063','1064','1065','1067','1068','1073','1075','1077','1078','1081']
+    if env_cfg.env_name.find('Drawer')>=0:    #! for drawer
+        print('drawer')
+        env_ids=['1000','1004','1005','1013','1016','1021','1024','1027','1032','1033','1035','1038','1040','1044',\
+        '1045','1052','1054','1056','1061','1063','1066','1067','1076','1079','1082']
+    elif env_cfg.env_name.find('Door')>=0:     #! for door
+        print('door')
+        env_ids=['1000','1001','1002','1006','1007','1014','1017','1018','1025','1026','1027','1028','1030','1031',\
+        '1034','1036','1038','1039','1041','1042','1044','1045','1046','1047','1049','1051','1052','1054','1057',\
+        '1060','1061','1062','1063','1064','1065','1067','1068','1073','1075','1077','1078','1081']
+    else: 
+        assert "you shouldn't get here"
 
     split_expert_buffer=True
     for env_id in env_ids:
@@ -128,7 +132,6 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env ,tmp_replay , replay
         replay_env.restore(init_replay_buffers,
                            replicate_init_buffer, num_trajs_per_demo_file)
         logger.info(f'Initialize buffer with {len(replay_env)} samples')
-    print(len(replay_env))
 
     if init_replay_with_split is not None:
         assert is_seq_of(init_replay_with_split) and len(
@@ -175,84 +178,67 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env ,tmp_replay , replay
         assert not on_policy
         assert rollout is not None
         trajectories = rollout.forward_with_policy(agent.policy, warm_steps)[0]
-        # trajectories = rollout.forward_with_policy(None, warm_steps)[0]
-        #print(len(trajectories['rewards']))
         #! trajectories are dict of keys {obs,actions,next_obs,rewards,dones,episode_dones}
         episode_statistics.push(
             trajectories['rewards'], trajectories['episode_dones'])
         replay_env.push_batch(**trajectories)
-        vial=1
-        # if vial:
-        #     with torch.no_grad():
-        #         trajectories = to_torch(
-        #             trajectories, dtype='float32', device=torch.cuda.current_device(), non_blocking=True)
-        #         pred = agent.model(
-        #             trajectories['obs'], trajectories['actions'])
-        #         pred=to_np(pred)
-        #         trajectories=to_np(trajectories)
+        vial=0
+        if vial:
+            with torch.no_grad():
+                trajectories = to_torch(
+                    trajectories, dtype='float32', device=torch.cuda.current_device(), non_blocking=True)
+                pred = agent.model(
+                    trajectories['obs'], trajectories['actions'])
+                pred=to_np(pred)
+                trajectories=to_np(trajectories)
 
-            # print(trajectories['obs']['pointcloud']['xyz'].shape)
-            # np.savetxt('visualization/seg.txt',trajectories['obs']['pointcloud']['seg'][0,:])
-            # np.savetxt('visualization/obs0.txt',trajectories['obs']['pointcloud']['xyz'][:100,:,0])
-            # np.savetxt('visualization/obs1.txt',trajectories['obs']['pointcloud']['xyz'][:100,:,1])
-            # np.savetxt('visualization/obs2.txt',trajectories['obs']['pointcloud']['xyz'][:100,:,2])
-            # np.savetxt('visualization/nextobs0.txt',trajectories['next_obs']['pointcloud']['xyz'][:100,:,0])
-            # np.savetxt('visualization/nextobs1.txt',trajectories['next_obs']['pointcloud']['xyz'][:100,:,1])
-            # np.savetxt('visualization/nextobs2.txt',trajectories['next_obs']['pointcloud']['xyz'][:100,:,2])
+            print(trajectories['obs']['pointcloud']['xyz'].shape)
+            np.savetxt('visualization/seg0.txt',trajectories['obs']['pointcloud']['seg'][100:200,:,0])
+            np.savetxt('visualization/seg1.txt',trajectories['obs']['pointcloud']['seg'][100:200,:,1])
+            np.savetxt('visualization/seg2.txt',trajectories['obs']['pointcloud']['seg'][100:200,:,2])
+            np.savetxt('visualization/obs0.txt',trajectories['obs']['pointcloud']['xyz'][100:200,:,0])
+            np.savetxt('visualization/obs1.txt',trajectories['obs']['pointcloud']['xyz'][100:200,:,1])
+            np.savetxt('visualization/obs2.txt',trajectories['obs']['pointcloud']['xyz'][100:200,:,2])
 
-            # np.savetxt('visualization/predobs0.txt',pred['pointcloud']['xyz'][:100,:,0])
-            # np.savetxt('visualization/predobs1.txt',pred['pointcloud']['xyz'][:100,:,1])
-            # np.savetxt('visualization/predobs2.txt',pred['pointcloud']['xyz'][:100,:,2])
-            # np.savetxt('visualization/rew.txt',trajectories['rewards'][:100])
-        # chamLoss = chamfer3D.dist_chamfer_3D.chamfer_3DDist()
-        # dist1, dist2, idx1, idx2 = chamLoss(sampled_batch['next_obs']['pointcloud']['xyz'],pred['pointcloud']['xyz'])
-        # loss3 = (torch.mean(dist1)) + (torch.mean(dist2))\
-        # pol = None
+            # np.savetxt('visualization/nextobs0.txt',trajectories['next_obs']['pointcloud']['xyz'][100:200,:,0])
+            # np.savetxt('visualization/nextobs1.txt',trajectories['next_obs']['pointcloud']['xyz'][100:200,:,1])
+            # np.savetxt('visualization/nextobs2.txt',trajectories['next_obs']['pointcloud']['xyz'][100:200,:,2])
+            # np.savetxt('visualization/nextseg0.txt',trajectories['next_obs']['pointcloud']['seg'][100:200,:,0])
+            # np.savetxt('visualization/nextseg1.txt',trajectories['next_obs']['pointcloud']['seg'][100:200,:,1])
+            # np.savetxt('visualization/nextseg2.txt',trajectories['next_obs']['pointcloud']['seg'][100:200,:,2])
+
+            np.savetxt('visualization/next_obs_computed0.txt',trajectories['next_obs_computed']['pointcloud']['xyz'][100:200,:,0])
+            np.savetxt('visualization/next_obs_computed1.txt',trajectories['next_obs_computed']['pointcloud']['xyz'][100:200,:,1])
+            np.savetxt('visualization/next_obs_computed2.txt',trajectories['next_obs_computed']['pointcloud']['xyz'][100:200,:,2])
+            np.savetxt('visualization/computed_nextseg0.txt',trajectories['next_obs_computed']['pointcloud']['seg'][100:200,:,0])
+            np.savetxt('visualization/computed_nextseg1.txt',trajectories['next_obs_computed']['pointcloud']['seg'][100:200,:,1])
+            np.savetxt('visualization/computed_nextseg2.txt',trajectories['next_obs_computed']['pointcloud']['seg'][100:200,:,2])
+
+            np.savetxt('visualization/predobs0.txt',pred['pointcloud']['xyz'][100:200,:,0])
+            np.savetxt('visualization/predobs1.txt',pred['pointcloud']['xyz'][100:200,:,1])
+            np.savetxt('visualization/predobs2.txt',pred['pointcloud']['xyz'][100:200,:,2])
+            np.savetxt('visualization/rew.txt',trajectories['rewards'][:100])
+            print(trajectories['rewards'][100:200])
+            print(np.max(trajectories['rewards'][100:200]))
+            # exit()
+
+
         # chamLoss = chamfer3D.dist_chamfer_3D.chamfer_3DDist()
         # chamfer_total1=0
-        # chamfer_total2=0
-        # chamfer_total3=0
-        # points=1000
+        # points=500
         # cham=[]
         # for i in range(points):
-        #     obs1=torch.from_numpy(rollout.recent_obs['pointcloud']['xyz']).cuda()
-        #     trajectories = rollout.forward_with_policy(agent.policy,8)[0]
-        #     # trajectories = rollout.forward_with_policy(pol,8)[0]
-        #     # traj = rollout.forward_with_policy(pol,1)[0]
-        #     # print(trajectories['rewards'],traj['rewards'])
-        #     obs2=torch.from_numpy(rollout.recent_obs['pointcloud']['xyz']).cuda()
-        #     # print(obs1.shape,obs2.shape)
-        #     dist1, dist2, idx1, idx2 = chamLoss(obs1,obs2)
-        #     loss3 = (torch.mean(dist1)) + (torch.mean(dist2))
-        #     print(loss3,trajectories['rewards'])
-        #     cham.append(loss3.item())
-        #     # print(loss3)
-        #     # exit()
-        # print(np.mean(np.array(cham)))
-
-
-        #     obs1=torch.from_numpy(traj['next_obs']['pointcloud']['xyz']).cuda()
+        #     traj = rollout.forward_with_policy(agent.policy,8)[0]
+        #     # traj = rollout.forward_with_policy(pol,8)[0]
+        #     obs1=torch.from_numpy(traj['next_obs_computed']['pointcloud']['xyz']).cuda()
         #     obs2=torch.from_numpy(traj['obs']['pointcloud']['xyz']).cuda()
-        #     obs3=torch.from_numpy(trajectories['obs']['pointcloud']['xyz']).cuda()
-        #     # print(obs1.shape,obs2.shape)
         #     dist1, dist2, idx1, idx2 = chamLoss(obs1,obs2)
         #     loss3 = (torch.mean(dist1)) + (torch.mean(dist2))
         #     chamfer_total1+=loss3.item()
-        #     # print(loss)
-        #     dist1, dist2, idx1, idx2 = chamLoss(obs1,obs3)
-        #     loss3 = (torch.mean(dist1)) + (torch.mean(dist2))
-        #     chamfer_total2+=loss3.item()
+        #     print(loss3,traj['rewards'])
 
-        #     dist1, dist2, idx1, idx2 = chamLoss(obs2,obs3)
-        #     loss3 = (torch.mean(dist1)) + (torch.mean(dist2))
-        #     chamfer_total3+=loss3.item()
         # print(chamfer_total1/points)
-        # print(chamfer_total2/points)
-        # print(chamfer_total3/points)
-
-            # print(resample) 
-        exit()
-
+        # exit()
         if is_mbrl:
             replay_model.push_batch(**trajectories)
         rollout.reset()
@@ -304,6 +290,7 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env ,tmp_replay , replay
 
                     print(f"iter {iteration_id} loss {i+1} is {float(loss[i])}")
                     print_dict[f'pred loss{i+1}']=float(loss[i])
+
 
 
             """
@@ -360,7 +347,7 @@ def train_rl(agent, rollout, evaluator, env_cfg, replay_env ,tmp_replay , replay
                     steps += n_steps
                     if(is_mbrl):
                         # print(n_steps)
-                        agent.model_rollout(replay_env,replay_model,n_steps)
+                        agent.model_rollout(replay_env,replay_model,n_steps,iter=iteration_id)
 
                 for i in range(n_updates):
                     total_updates += 1

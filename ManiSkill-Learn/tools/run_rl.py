@@ -11,7 +11,7 @@ os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["NUMEXPR_MAX_THREADS"] = "32"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 def init_torch(args):
     import torch
     torch.utils.backcompat.broadcast_warning.enabled = True
@@ -102,6 +102,7 @@ def main_mfrl_brl(cfg, args, rollout, evaluator, logger):
     if cfg.get('resume_from', None) is not None:
         load_checkpoint(agent, cfg.resume_from, map_location='cpu')
 
+
     if args.gpu_ids is not None and len(args.gpu_ids) > 0:
         agent.to('cuda')
 
@@ -144,7 +145,7 @@ def main_mfrl_brl(cfg, args, rollout, evaluator, logger):
         eval_dir = osp.join(cfg.work_dir, test_name)
         shutil.rmtree(eval_dir, ignore_errors=True)
         agent.eval()
-        lens, rewards, finishes = evaluator.run(
+        lens, rewards, finishes, _, _ = evaluator.run(
             agent, work_dir=eval_dir, **cfg.eval_cfg)
         save_eval_statistics(eval_dir, lens, rewards, finishes, logger)
         agent.train()

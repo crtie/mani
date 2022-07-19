@@ -7,15 +7,18 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+import copy
+from copy import deepcopy
 from mani_skill_learn.networks import build_model, hard_update, soft_update
 from mani_skill_learn.optimizers import build_optimizer
-from mani_skill_learn.utils.data import to_torch,to_np,merge_dict
+from mani_skill_learn.utils.data import to_torch,to_np,merge_dict, dict_to_seq,concat_list_of_array,state_dict2tensor,tensor2state_dict,unsqueeze
 from ..builder import MBRL
 from mani_skill_learn.utils.torch import BaseAgent
 from mani_skill_learn.utils.meta import get_logger, get_total_memory, td_format
 from torch.utils.tensorboard import SummaryWriter
 import chamfer3D.dist_chamfer_3D
+from mani_skill_learn.env.torch_parallel_runner import TorchWorker as Worker
+import time
 writer = SummaryWriter("logs")
 
 
@@ -23,7 +26,7 @@ writer = SummaryWriter("logs")
 class MBPO(BaseAgent):
     def __init__(self, policy_cfg, value_cfg, model_cfg, obs_shape, action_shape, action_space, batch_size=128, gamma=0.99,
                  update_coeff=0.005, alpha=0.2, target_update_interval=1, max_iter_use_real_data=1000,use_expert=0,model_updates=256,
-                 data_generated_by_model=4 , automatic_alpha_tuning=True,
+                 data_generated_by_model=4 ,max_model_horizon=1, automatic_alpha_tuning=True, cem=False, cem_cfg=None,
                  alpha_optim_cfg=None):
         super(MBPO, self).__init__()
         policy_optim_cfg = policy_cfg.pop("optim_cfg")
@@ -40,6 +43,10 @@ class MBPO(BaseAgent):
         self.use_expert = use_expert
         self.model_updates = model_updates
         self.data_generated_by_model = data_generated_by_model
+        self.max_model_horizon = max_model_horizon
+        self.use_cem = cem
+        self.cem_cfg = cem_cfg
+        self.ac_dim =action_shape
 
         policy_cfg['obs_shape'] = obs_shape
         policy_cfg['action_shape'] = action_shape
@@ -95,7 +102,9 @@ class MBPO(BaseAgent):
                 # print(loss1,loss2,loss3)
                 # print(loss1,loss2,loss3)
                 mse_loss=loss1+loss2+100*loss3
+                # print(loss1.item(),loss2.item(),loss3.item())
                 # print(mse_loss)
+                # print(f'iter {i} ,total loss is {mse_loss}')
             else:  #! 输入是state
                 labels=torch.cat([sampled_batch['rewards'] , sampled_batch['next_obs']-sampled_batch['obs']],dim=-1)
                 mse_loss = F.mse_loss(pred,labels)
@@ -105,9 +114,20 @@ class MBPO(BaseAgent):
             self.model_optim.step()
         return loss1,loss2,loss3,mse_loss
 
-    def model_rollout(self, replay_env, replay_model,n_steps):
-          # ! 每次造4倍于环境步的model数据
-        sampled_batch = replay_env.sample(self.data_generated_by_model * n_steps)
+    def model_rollout(self, replay_env, replay_model,n_steps,iter):
+        #! 每在真实环境走n_steps步调用一次本函数，故一共要造出self.data_generated_by_model * n_steps个点，把这些点平均分给current_model_horizon
+        total_generated_data = self.data_generated_by_model * n_steps
+        # if iter<=50:
+        #     current_horizon = 1
+        # elif iter>=self.max_iter_use_real_data:
+        #     current_horizon = self.max_model_horizon
+        # else:
+        #     a = (self.max_model_horizon-1)/(self.max_iter_use_real_data-50)
+        #     b = 1-50*a
+        #     current_horizon = int(a*iter+b)
+        # sample_num = int(total_generated_data/current_horizon)
+        sampled_batch = replay_env.sample(total_generated_data)
+        # for h in range(current_horizon):
         sampled_batch = to_torch(
             sampled_batch, dtype='float32', device=self.device, non_blocking=True)
         for key in sampled_batch:
@@ -124,21 +144,8 @@ class MBPO(BaseAgent):
                 pred_obs['pointcloud']=pred['pointcloud']
                 pred_obs['state']=pred['state']
                 pred_reward=pred['rewards']
-
-
-            else:#! state input
-                pred[:, :, 1:] += sampled_batch['next_obs']
-                num_models, batch_size, _ = ensemble_model_means.shape
-                model_idxes = torch.randint(num_models, (batch_size,))
-                batch_idxes = torch.arange(0, batch_size)
-                #print(model_idxes)
-                samples = pred[model_idxes, batch_idxes]
-                #print(samples.shape,samples)
-                
-                pred_reward, pred_obs = samples[:, :1], samples[:, 1:]
-                #print(pred_reward.shape,pred_obs.shape)
         rollout = dict()
-                #! trajectories are dict of keys {obs,actions,next_obs,rewards,dones,episode_dones}
+        #! trajectories are dict of keys {obs,actions,next_obs,rewards,dones,episode_dones}
         rollout['obs'] = to_np(sampled_batch['next_obs'])
         rollout['actions'] = to_np(next_action)
         rollout['next_obs'] = to_np(pred_obs)
@@ -146,6 +153,7 @@ class MBPO(BaseAgent):
         rollout['dones'] = np.zeros_like(pred_reward.cpu())
         rollout['episode_dones'] = np.zeros_like(pred_reward.cpu())
         replay_model.push_batch(**rollout)
+        # sampled_batch = copy.deepcopy(rollout)
 
     def update_parameters(self, memory1,updates,memory2=None,expert_replay=None,alpha=0.05,iter=0):
         num_expert_replay_is_not_null=0
@@ -261,3 +269,76 @@ class MBPO(BaseAgent):
             'log_pi': torch.mean(log_pi).item(),
             'num_expert': num_expert_replay_is_not_null,
         }
+    def cem_rollout(self,obs,mode):
+        #! obs: 8个obs，每个有pointcloud和state
+        obs = to_torch(obs,dtype='float32',device=self.device)
+        origin_param = self.policy.state_dict()
+        params = state_dict2tensor(origin_param) #! tensor of shape (282676)
+        num_params = params.shape[0]
+        ret=np.zeros((self.ac_dim))
+        start_time=time.time()
+        #! 还是试试对一个sequence里的所有点都用一样的weight noise吧
+        weight_noise = np.random.normal(0,1,(self.cem_cfg['cem_num_sequances'],num_params))
+        # print(weight_noise.shape)
+        mean = np.mean(weight_noise,axis=0,keepdims=False)
+        std = np.std(weight_noise,axis=0,keepdims=False) #! params
+        # print(mean.shape)
+        for j in range(self.cem_cfg['cem_iterations']):
+            start_iter_time=time.time()
+            rewards = to_np(self.evaluate_candidate_sequences(weight_noise,obs))
+            elite_idx = np.argsort(rewards)[-self.cem_cfg['cem_num_elites']:]
+            elite_sequences = weight_noise[elite_idx]
+            # print(mean.shape)
+            mean *= 1 - self.cem_cfg['cem_alpha'] 
+            mean += self.cem_cfg['cem_alpha'] * np.mean(elite_sequences, axis=0, keepdims=False) 
+            if j == self.cem_cfg['cem_iterations']:
+                break
+            std *= 1 - self.cem_cfg['cem_alpha']  
+            std *= self.cem_cfg['cem_alpha'] * np.std(elite_sequences, axis=0, keepdims=False)
+            weight_noise = np.random.normal(mean, std,(self.cem_cfg['cem_num_sequances'],num_params))
+            end_iter_time=time.time()
+            # print(f'we spend {end_iter_time-start_iter_time} seconds for cem iteration')
+        params_tmp = params + to_torch(mean).cuda()
+        state_dict_tmp = tensor2state_dict(params_tmp,origin_param)
+        self.policy.load_state_dict(state_dict_tmp)
+        ret =to_np(self.policy(obs,mode='eval'))
+        end_time = time.time()
+        print(f'we spend {end_time-start_time} seconds for one step')
+        self.policy.load_state_dict(origin_param)
+        return np.squeeze(ret)
+
+
+
+    def evaluate_candidate_sequences(self,weight_noise,obs):
+        weight_noise=to_torch(weight_noise).cuda()
+        #! obs:单帧obs    weight_noise: num_sequences* num_params
+        origin_param = self.policy.state_dict()
+        params = state_dict2tensor(origin_param).cuda() #! tensor of shape (282676)
+        num_params = params.shape[0]
+        rewards = torch.zeros((weight_noise.shape[0])).cuda()
+        # print(rewards.shape)
+        for i in range(weight_noise.shape[0]):#!每一条sequence
+            # obs_tmp = copy.deepcopy(obs)
+            # params_tmp = copy.deepcopy(params)
+            # params_tmp = params + weight_noise[i]
+            # state_dict_tmp = tensor2state_dict(params_tmp,origin_param)
+            # self.policy.load_state_dict(state_dict_tmp)
+            for j in range(self.cem_cfg['cem_horizon']):#!每一步
+                action = self.policy(obs_tmp,mode='eval')
+                pred = self.model(obs_tmp,action)
+                obs_tmp['pointcloud'] = pred['pointcloud']
+                obs_tmp['state'] = pred['state']
+                rewards[i]+= pred['rewards'].item()*(self.gamma**j)
+                if(j==weight_noise.shape[1]-1):
+                    pi=self.policy(obs_tmp,mode='eval')
+                    q_pi = self.critic(obs_tmp, pi)
+                    q_pi_min = torch.min(q_pi, dim=-1, keepdim=False).values[0].item()
+                    rewards[i]+=q_pi_min*(self.gamma**weight_noise.shape[1])
+        self.policy.load_state_dict(origin_param)
+        return rewards
+
+
+
+
+
+

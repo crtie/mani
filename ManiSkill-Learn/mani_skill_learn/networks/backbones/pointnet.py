@@ -19,6 +19,7 @@ class PointBackbone(nn.Module):
             assert 'pcd' in pcd
             return self.forward_raw(**pcd)
         else:
+            print(pcd)
             return self.forward_raw(pcd)
 
     def forward_raw(self, pcd, state=None):

@@ -1,5 +1,6 @@
 import numpy as np, itertools
 from .type import is_dict, is_seq_of
+import torch
 
 
 def concat_list_of_array(x, axis=0):
@@ -61,6 +62,13 @@ def stack_list_of_array(x, axis=0):
             return torch.stack(x, dim=axis)
         else:
             raise NotImplementedError(x)
+def flatten_list_of_tensor(x,axis=0):
+    # x is a list of tensor, you want to flat it in a single tensor
+    for i in range (len(x)):
+        x[i] = torch.flatten(x[i])
+    return x
+    #     print(x[i].shape)
+    # print(concat_list_of_array(x).shape)
 
 
 def stack_dict_of_list_array(x, axis=0):

@@ -16,10 +16,19 @@ agent = dict(
     type='MBPO',
     batch_size=1024,
     gamma=0.95,
-    max_iter_use_real_data=1500,  #如果是从某个ckpt接着train,就是1
+    max_iter_use_real_data=1200,  #! 希望在400个iter里学会
     use_expert = 1,
     model_updates = 256,
-    data_generated_by_model=16, #! 用model造出4倍于env steps的数据
+    max_model_horizon = 1,
+    data_generated_by_model=4, #! 用model造出200倍于env steps的数据
+    cem = False,
+    cem_cfg=dict(
+        cem_iterations=4,
+        cem_num_elites=10,
+        cem_alpha=1.0,
+        cem_horizon=5,
+        cem_num_sequances=50,
+        ),
     policy_cfg=dict(
         type='ContinuousPolicy',
         policy_head_cfg=dict(
@@ -170,14 +179,12 @@ expert_replay_split_cfg = dict(
 
 train_mfrl_cfg = dict( 
     total_steps=3000000,
-    warm_steps=400,
+    warm_steps=4000,
     n_eval=100000,
     n_checkpoint=100000,
     n_steps=8,
-    n_updates=16,
+    n_updates=8,
     m_steps=8,
-    # init_replay_buffers=['option dir/MBPO_baseline/models/buffer.h5',],
-    # init_replay_buffers=['option dir/MBPO_baseline/models/buffer.h5',],
 )
 
 rollout_cfg = dict(
@@ -186,11 +193,12 @@ rollout_cfg = dict(
     use_cost=False,
     reward_only=False,
     num_procs=8,
+    compute_next_obs = True,
 )
 
 eval_cfg = dict(
     type='BatchEvaluation',
-    num=16,
+    num=100,
     num_procs=8,
     use_hidden_state=False,
     start_state=None,
@@ -198,7 +206,7 @@ eval_cfg = dict(
     save_video=False,
     use_log=True,
     env_cfg=dict(
-        env_name= "OpenCabinetDoor_split_no_mid_handle_validation-v0",
+        env_name= "OpenCabinetDrawer_split_validation-v0",
         type='gym',
         unwrapped=False,
         obs_mode='pointcloud',

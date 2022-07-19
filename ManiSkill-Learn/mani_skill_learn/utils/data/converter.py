@@ -2,8 +2,9 @@ import numpy as np
 from collections.abc import Sequence, Iterable
 from numbers import Number
 from .type import str_to_dtype, is_arr, is_dict, is_seq_of, is_type, scalar_type, is_str
-
-
+from .concat import flatten_list_of_tensor,concat_list_of_array
+import copy
+from copy import deepcopy
 def astype(x, dtype):
     if dtype is None:
         return x
@@ -156,4 +157,21 @@ def merge_dict(dict1,dict2,permutation=None):
         ret=np.concatenate((dict1,dict2),axis=0)
         if permutation is not None:
             ret=ret[permutation]
+    return ret
+
+def state_dict2tensor(state_dict):
+    keys,params = dict_to_seq(state_dict)
+    para_tensor = concat_list_of_array(flatten_list_of_tensor(params))
+    return para_tensor
+
+def tensor2state_dict(state_tensor,example_state_dict):
+    #! 给一个网络的parameters，返回一个state_dict，example_state_dict用来指示此网络结构
+    keys,params = dict_to_seq(example_state_dict)
+    ret = copy.deepcopy(example_state_dict)
+    index = 0
+    for i in range(len(params)):
+        num_params = params[i].numel()
+        ret[keys[i]] = state_tensor[index:index+num_params].reshape(params[i].shape)
+        index += num_params
+    assert index==state_tensor.shape[0]
     return ret

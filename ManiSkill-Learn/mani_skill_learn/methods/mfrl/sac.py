@@ -31,6 +31,7 @@ class SAC(BaseAgent):
         self.batch_size = batch_size
         self.target_update_interval = target_update_interval
         self.automatic_alpha_tuning = automatic_alpha_tuning
+        self.use_cem = False
 
         policy_cfg['obs_shape'] = obs_shape
         policy_cfg['action_shape'] = action_shape
